@@ -1,0 +1,42 @@
+```{r options, include=FALSE}
+opts_chunk$set(cache = TRUE)
+```
+
+Ohio PLS and FIA Data Processing
+========================================================
+
+Jillian Deines  
+March 2014  
+
+This script processes the PLS GIS data shapefile and FIA summaries (crunched by Dan Williams) into aggregate species groups and county percentages. It also creates the pie chart maps and change in species percentage figure.
+
+Previous versions of this (ie, Ohio.PLS.FIA.landUseSummariesV6_2014.r) also summarized composition by township, but this is not reproduced here for streamlining. Original code also has contributions from Dan Williams.
+
+Inputs:
+* OHcorners.shp - GIS file used for data collection from georeferenced county maps
+* OHcounty.shp  - Ohio county shapefile 
+
+Crunching:
+* Summarizes PLS raw species counts by county
+
+Outputs:
+* 
+
+### Working directory and packages
+This assumes you have the file 'CleanCodeAndData' set as your working directory
+
+```{r setup,message=FALSE}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+library(rgdal)
+library(PBSmapping)
+library(plotrix)
+```
+
+
+### PLS Processing: Summarize Raw Data by County
+
+```{r}
+
+
+```
