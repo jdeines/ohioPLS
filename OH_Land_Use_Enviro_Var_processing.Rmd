@@ -1,0 +1,148 @@
+```{r options, include=FALSE}
+opts_chunk$set(cache = TRUE)
+```
+
+Ohio Land Use and Environmental Variable Processing
+========================================================
+
+Jillian Deines  
+March 2014  
+
+This script summarizes land use and environmental variables by county for analyses. Updated from previous .r scripts.
+
+#### Inputs:
+* NLCD2006_OH.img - NLCD 2006 dataset clipped to Ohio in ArcGIS 
+
+#### Crunching:
+* Summarizes land use by county
+
+#### Outputs:
+* OHCountyLandCover.csv
+
+#### Next steps:
+* Run analyses in OHAnalyses.Rmd
+
+Working directory and packages
+------------------------------
+This assumes you have the file 'CleanCodeAndData' set as your working directory
+
+```{r setup,message=FALSE}
+library(rgdal)
+library(raster)
+```
+
+Land Use Summary by County
+---------------------------
+This section takes the National Land Cover Database (2006) raster for Ohio and extracts the percentages of each type of land use by county
+
+NOTE: The overlay in this session takes a decent amount of time to run (1 hour +).
+
+```{r landUseSummary, eval=FALSE}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# land cover raster
+landUse <- raster("GISlayers/NLCD_OH/NLCD2006_OH.img")
+landUse[landUse == 0] <- NA
+# county polygons
+county <- readOGR("GISlayers","OHCounty", verbose=F)
+
+#---extract raster values by county--- 
+ovRc <- extract(landUse,county)
+
+# use table to summarize list ovRc (county)
+tabCount <- lapply(ovRc,table)
+
+# land class options
+landclass<-c(11,21,22,23,24,31,41,42,43,52,71,81,82,90,95) 
+
+# blank matrix with a column for each land class and a row for each polygon
+landcoverC<-matrix(0,ncol=length(landclass),nrow=length(tabCount)) 
+
+# fill matrix with land class percentages
+for(i in 1:length(tabCount)){
+  sc <- sum(tabCount[[i]])    	# total number of cells in each polygon
+	landcoverC[i, landclass%in%names(tabCount[[i]])] <- as.numeric(tabCount[[i]]/sc)
+}
+
+#turn matrix into a data frame and add a column with total number of raster cells in each polygon
+landcoverAC <- cbind(as.data.frame(landcoverC), numcells=sapply(tabCount,sum)) 
+#add land cover class names to columns in data.frame
+names(landcoverAC)[1:15]<-landclass     
+landcoverAC <- cbind(Polygon = rownames(landcoverAC), landcoverAC)
+
+# replace column names with actual land cover names
+colnames(landcoverAC)[2:16] <- c("openWater", "developedOpen", "developedLow", "developedMedium", "developedHigh", "barren", "forestDec", "forestEver", "forestMix", "shrub", "grassland", "pasture", "crops", "wetlandsWoody", "wetlandsHerb")
+
+# add county names to output
+countyKey <- as.data.frame(county[,11:12])
+landcover2 <- merge(landcoverAC,countyKey,by.x='Polygon', by.y='ID', sort=F)
+landcover2 <- landcover2[,c(1,18,2:17)] # rearrange
+
+write.csv(landcover2,"R output/OHCountyLandCover.csv")
+```
+
+
+Environmental Variables
+-----------------------------
+Process environmental variable GIS layers for OH and summarize these variables by county. Variables include:
+* annual precipitation (PRISM climate normals)
+* mean annual temperature (Worldclim)
+* minimum January temperature (PRISM climate normals)
+* maximum July temperature (PRISM climate normals)
+* soil pH (STATSGO)
+* soil available water content (STATSGO)
+* slope (STATSGO)
+
+### Create function for extract mean raster values by temperature
+
+```{r extractFunction}
+extractVar <- function(rasterfile, polydir, polygonName) {
+  # Extracts raster cell values by polygon and takes the mean.
+  # INPUTS: 
+    # raster = raster file path
+    # polydir = directory containing polygon
+    # polygon = polygon file name, no extension  
+  # RETURNS: 
+  
+  ras  <- raster(rasterfile)
+  poly <- readOGR(polydir,polygonName)
+  
+  # extract raster values by polygon (takes a minute to run)
+  overList = extract(ras,poly)
+  
+  # get mean raster value by polygon 
+  meanVal <- sapply(overList,mean)
+  
+  return(meanVal)
+}
+
+```
+
+### Rasterize soil data
+OHsoil.shp 
+
+```{r soilToRaster}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# county shapefile
+county <- readOGR("GISlayers","OHCounty", verbose=F) 
+# soil data
+soil <- readShapeSpatial("GISlayers/OHsoil.shp")
+
+
+```
+
+### Extract county mean values for variables
+
+```{r extractValues}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+polydir <- 'GISlayers'
+polygonName <- 'OHCounty'
+
+
+
+
+```
+
+

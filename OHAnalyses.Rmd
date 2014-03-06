@@ -1,0 +1,30 @@
+```{r options, include=FALSE}
+opts_chunk$set(cache = TRUE)
+```
+
+Ohio Analyses
+========================================================
+
+Jillian Deines  
+March 2014  
+
+This script analyses correlations among Ohio vegetation (historic and modern) and covariates (land use and environmental variables).
+
+Analyses aim to describe presettlement vegetation in Ohio and examine relationships among
+modern vegetation (using FIA data), historic vegetation, land use, and environmental variables.
+
+#### Depends:
+This script relies on output from the following scripts:
+* PLS_FIA_data_crunching.Rmd
+* OH_Land_Use_Enviro_Var_processing.Rmd
+
+#### Inputs:
+* 
+
+#### Crunching:
+* 
+
+#### Outputs:
+* 
+
+

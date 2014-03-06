@@ -29,9 +29,12 @@ Previous versions of this (ie, Ohio.PLS.FIA.landUseSummariesV6_2014.r) also summ
 * OHCompCleanPLS_percent.csv
 * OHCompCleanFIA_percent.csv
 * Figure: PLS vs FIA pie charts
+  * OH_county_centroids_projected.csv
 * Figure: Change in species percentage (SpeciesChange)
 
 #### Next steps:
+* Processing environmental and land use covariates in OH_Land_Use_Enviro_Var_processing.Rmd
+* Run analyses in OHAnalyses.Rmd
 
 Working directory and packages
 ------------------------------
@@ -43,7 +46,6 @@ library(maptools)
 library(PBSmapping)
 library(plotrix)
 library(plyr)
-#library(grid)
 ```
 
 
@@ -256,6 +258,8 @@ fia2 <- merge(county.proj, fia, by.x= "ID", by.y= "id", all.x=F)
 ## calculate polygon centroids for 27 data counties
 pls.polyset <- SpatialPolygons2PolySet(pls2)
 centroids <- calcCentroid(pls.polyset, rollup=1)
+
+write.csv(centroids, "R output/OH_county_centroids_projected.csv")
 
 # combine centroids with data
 pls3 <- cbind(centroids, pls2)
