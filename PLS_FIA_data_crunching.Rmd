@@ -12,31 +12,355 @@ This script processes the PLS GIS data shapefile and FIA summaries (crunched by 
 
 Previous versions of this (ie, Ohio.PLS.FIA.landUseSummariesV6_2014.r) also summarized composition by township, but this is not reproduced here for streamlining. Original code also has contributions from Dan Williams.
 
-Inputs:
+#### Inputs:
 * OHcorners.shp - GIS file used for data collection from georeferenced county maps
 * OHcounty.shp  - Ohio county shapefile 
+* FIASpringSpeciesPercentage.csv - FIA data aggregated by Dan Williams
 
-Crunching:
+#### Crunching:
 * Summarizes PLS raw species counts by county
+* Data Cleaning and Aggregation: PLS
+* Data Cleaning and Aggregation: FIA
+* Figure: Change in Species Percentage
 
-Outputs:
-* 
+#### Outputs:
+* OHCountyCompRaw_PLS.csv - raw PLS species counts by county 
+* OHCompClean_PLS.csv
+* OHCompCleanPLS_percent.csv
+* OHCompCleanFIA_percent.csv
+* Figure: PLS vs FIA pie charts
+* Figure: Change in species percentage (SpeciesChange)
 
-### Working directory and packages
+#### Next steps:
+
+Working directory and packages
+------------------------------
 This assumes you have the file 'CleanCodeAndData' set as your working directory
 
 ```{r setup,message=FALSE}
-setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
-
 library(rgdal)
+library(maptools)
 library(PBSmapping)
 library(plotrix)
+library(plyr)
+#library(grid)
 ```
 
 
-### PLS Processing: Summarize Raw Data by County
+PLS Processing: Summarize Raw Data by County
+---------------------------------------
 
-```{r}
+```{r PLStoCountyRaw}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
+# load corner point shapefile (data collected from georeferenced maps). Current version OHcorners.shp output based: January 30, 2013. CRS = NAD83, latlong
+corners <- readOGR("GISlayers","OHcorners", verbose=F)
+
+# county shapefile
+county <- readOGR("GISlayers","OHCounty", verbose=F) 
+
+# quick look at data
+plot(county, main='PLS Data Points')
+plot(corners, col="blue", cex = 0.4,add=T)
+
+# general data summary
+numDataPoints <- length(corners)
+numTrees <- sum(!is.na(corners$SP1)) + sum(!is.na(corners$SP2)) + sum(!is.na(corners$SP3)) + sum(!is.na(corners$SP4))
+
+# make a vector of species possibilities = all species recorded from Ohio maps
+treeNames <- c(levels(corners$SP1), levels(corners$SP2), levels(corners$SP3), levels(corners$SP4))
+species <- sort(unique(treeNames)) # alphabetize
+species <- species[!species %in% c('no tree')] # remove 'no tree' category
+
+# Identify which polygon (in "county") each point in corners falls within using an overlay and store as new column
+corners$countyID <- over(corners, county)$ID
+
+
+# Calculate total # of each species in each county and store it as matrix "comp"
+comp<-t(sapply(as.numeric(levels(factor(corners$countyID))),function(j)  {
+	J<-corners[ !is.na(corners$countyID)& corners$countyID==j,]  
+	c(county=j,sapply(species, function(i)sum(c(J$SP1==i,J$SP2==i,J$SP3==i,J$SP4==i),na.rm=TRUE))) 
+}))
+
+# combine typo columns
+comp.df <- as.data.frame(comp)
+comp.df <- rename(comp.df, c('sugar maple' = "sugarmaple", `sugar mpale` = "sugarmpale"))
+comp.df$poplar <- comp.df$poplar + comp.df$Poplar
+comp.df$sugarmaple <- comp.df$sugarmaple + comp.df$sugarmpale
+comp.df <- rename(comp.df, c('sugarmaple' = "sugar maple"))
+comp.df <- subset(comp.df, select=-c(Poplar,sugarmpale))
+
+#add a column that is the sum of the trees for each county (sum row excluding county column)
+comp.df <-cbind(comp.df,total=rowSums(comp.df[,-1]))
+
+# add county names to output
+countyKey <- as.data.frame(county[,11:12])
+comp.df2 <- merge(comp.df,countyKey,by.x='county', by.y='ID')
+comp.df2 <- comp.df2[,c(1,73,2:72)]
+```
+```{r PLStoCountyRaw_out, eval=FALSE}
+# write output to CSV for intermediate starting point
+write.csv(comp.df2,"R output/OHCountyCompRaw_PLS.csv", row.names=F)
+```
+
+This Ohio dataset includes `r numDataPoints` corner data locations and `r numTrees` trees recorded. There were `r length(species)-2` names recorded in the PLS dataset.  
+
+**note:** retrieving the names directly from the data (as done above) discovered 2 species missed in the manual creation in past versions (persimmon and swamp ash), as well as two entry typos missed in cleaning ('sugar mpale' and 'Poplar').  I added swamp ash to the 'ash' category, and persimmon to 'other'.
+
+**note:** This version omits writing out a shapefile with the raw county counts as it's probably not helpful
+
+
+Data Cleaning and Aggregation: PLS
+-----------------------------------
+This aggregates the `r length(species)-2` common names into 15 taxonomic groups. Next, it excludes counties with low sample numbers from analysis (because the counties don't directly align with the township borders, there are a few counties with a small number of points that belong to townships mostly within neighboring counties).  
+
+```{r cleanPLS, fig.height=5, fig.width=5}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# read in raw CSV 
+raw.comp <- read.csv("R output/OHCountyCompRaw_PLS.csv")
+
+#----PLS taxon groupings----# 
+raw.comp2 <- cbind(raw.comp[,c('county','CountyName')],
+	"ash"=rowSums(raw.comp[,c("ash", "black.ash", "blue.ash", 
+                             "hoop.ash", "swamp.ash", "white.ash")]),
+	"basswood"=rowSums(raw.comp[,c("basswood","linden")]),
+	"beech"=raw.comp$beech,
+	"cherry"=raw.comp$cherry,
+	"elm"=rowSums(raw.comp[,c("elm", "red.elm")]),
+	"hackberry"=raw.comp$hackberry,
+	"hickory"=rowSums(raw.comp[,c("bitternut", "hickory")]),
+	"honeylocust"=raw.comp$honey.locust,
+	"maple"=rowSums(raw.comp[,c("maple", "silver.maple", "soft.maple", "sugar",
+                  "sugar.maple", "white.maple", "box.elder.maple", "box.elder")]),
+	"oak"=rowSums(raw.comp[,c("black.jack", "black.oak", "bur.oak", "chestnut.oak",
+                "jack.oak", "oak", "pin.oak", "post.oak", "red.oak", "spanish.oak",
+                "shingle.oak", "swamp.oak", "white.oak", "yellow.oak")]),
+	"pine"=rowSums(raw.comp[,c("pine", "pitch.pine")]),
+	"sycamore"=raw.comp$sycamore,
+	"tulip"=raw.comp$lynn,
+	"walnut"=rowSums(raw.comp[,c("black.walnut", "walnut", "white.walnut")]),
+	"other"=rowSums(raw.comp[,c("red.bud", "chestnut", "poplar", "hemlock", 
+              "birch", "aspen", "cottonwood", 'persimmon', "trembling.aspen", 
+              "gum", "black.gum", "dogwood", "pepperidge", "mulberry", "ironwood",
+              "serviceberry", "hornbeam", "coffeetree", "cedar", "locust", "black.locust",
+              "buckeye","sassafras", "willow", "sourwood")]),
+	"total"=raw.comp$total)
+
+# check to make sure we got all species by re-summing the total count for each
+# county in the combined taxons and checking against the original total 
+test.comp2 <-cbind(raw.comp2, "check.total"=rowSums(raw.comp2[,3:17])) #re-sum trees
+sum(test.comp2$total != test.comp2$check.total) 
+
+
+#----CLEAN - REMOVE COUNTIES WITH LOW NUMBERS----#
+
+# view distribution of tree counts by county
+plot(raw.comp2$total, ylab="Trees per County", xlab='County Index')  # clear break below 262
+abline(h=240, col='red')
+
+# remove all rows with a total tree count less than 262 (27 counties left)
+pls.comp <- subset(raw.comp2, raw.comp2$total > 261)
+
+# see how many trees per county
+summary(pls.comp$total)
+
+# get new tally of remaining trees in the dataset
+sum(pls.comp$total)
+
+#----CONVERT SPECIES NUMBERS TO PERCENTAGES ##
+
+# divide each cell with tree counts by the total tree count
+pls.comppct <- cbind(countyID = pls.comp$county, countyName = pls.comp$CountyName, pls.comp[,3:17]/pls.comp$total, 
+  total = pls.comp$total)
+```
+```{r cleanPLS_out, eval=FALSE}
+# write out data
+write.csv(pls.comp,"R output/OHCompClean_PLS.csv",row.names=F)
+write.csv(pls.comppct, "R output/OHCompCleanPLS_percent.csv", row.names=F)
+```
+
+Data Cleaning and Aggregation: FIA
+-----------------------------------------
+Dan Williams downloaded data from FIA. He specified all species/individuals among a certain size class (> 9 in diameter, I believe) to match PLS methodology. Dan converted raw tree counts into percentage data in Excel. PDF's of downloaded county data are in the folder "FIA Tree Count PDFs", and I am guessing intermediate processing steps are in the folder 'FIA Ohio Summarized Data'. Both of these files are located in the 'FIAdataFromDan' folder in the working directory (CleanCodeAndData).
+
+```{r cleanFIA}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# read in species level FIA county percentage data compiled by Dan
+FIA.spec1 <- read.csv("FIAdataFromDan/FIASpringSpeciesPercentage.csv")
+pls.comp1 <- read.csv("R output/OHCompClean_PLS.csv")
+
+# check PLS and FIA counties match
+sum(sort(pls.comp1$county) != sort(FIA.spec1$id))
+
+#----Combine Species Classes----#
+FIA.spec2 <-cbind(FIA.spec1[,c("id","County")],
+	"ash"=rowSums(FIA.spec1[,c("ash", "white.ash", "black.ash", "green.ash", "blue.ash")]),
+	"basswood"=FIA.spec1$american.basswood,
+	"beech"=FIA.spec1$american.beech,
+	"cherry"=rowSums(FIA.spec1[,c("black.cherry","pin.cherry","chokecherry","sweet.cherry")]),
+	"elm"=rowSums(FIA.spec1[,c("american.elm", "siberian.elm", "slippery.elm","rock.elm")]),
+	"hackberry"=FIA.spec1$hackberry,
+	"hickory"=rowSums(FIA.spec1[,c("hickory", "bitternut.hickory", "pignut.hickory", 
+                    "shellbark.hickory", "shagbark.hickory","mockernut.hickory")]),
+	"honeylocust"=FIA.spec1$honeylocust,
+	"maple"=rowSums(FIA.spec1[,c("black.maple", "red.maple", "silver.maple", "sugar.maple", 
+                  "norway.maple", "boxelder")]),
+	"oak"=rowSums(FIA.spec1[,c("oak", "white.oak", "swamp.white.oak", "scarlet.oak",
+                "northern.pin.oak", "shingle.oak", "overcup.oak", "bur.oak", 
+                "swamp.chestnut.oak", "chinkapin.oak", "pin.oak", "chestnut.oak", 
+                "northern.red.oak", "post.oak", "black.oak")]),
+	"pine"=rowSums(FIA.spec1[,c("eastern.white.pine", "scotch.pine", "loblolly.pine", 
+                "virginia.pine", "austrian.pine", "red.pine", "pitch.pine", "shortleaf.pine")]),
+	"sycamore"=FIA.spec1$american.sycamore,
+	"tulip"=FIA.spec1$yellow.poplar,
+	"walnut"=rowSums(FIA.spec1[,c("black.walnut","butternut")]),
+	"other"=rowSums(FIA.spec1[,c("chestnut","eastern.red.cedar","norway.spruce","blue.spruce",
+                  "eastern.hemlock","unknown.dead.conifer","ohio.buckeye","yellow.buckeye",
+                  "ailanthus","european.alder","yellow.birch","sweet.birch","river.birch",
+                  "northern.catalpa","eastern.redbud","hawthorn","common.persimmon",
+                  "kentucky.coffeetree","sweetgum","osage.orange","cucumbertree","apple",
+                  "white.mulberry","blackgum","eastern.hophornbeam","sourwood",
+                  "paulownia..empress.tree.","eastern.cottonwood","bigtooth.aspen",
+                  "quaking.aspen","black.locust","black.willow","sassafras",
+                  "unknown.dead.hardwood","other.or.unknown.live.tree")]),
+	"total"=rowSums(FIA.spec1[,3:93]))
+
+# sort data frame so rows increase by county id number
+FIA.spec2 <- FIA.spec2[order(FIA.spec2$id),]  			# sort rows by county number
+```
+```{r cleanFIA_out, eval=FALSE}
+write.csv(FIA.spec2, "R Output/OHCompCleanFIA_percent.csv",row.names=F)
+```
+
+Figure: PLS vs FIA pie charts
+-------------------------------
+```{r pieChart, fig.width=8,fig.height=6}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# fia data
+fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
+# pls data
+pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
+
+# read in county shapefile and reproject for figure using
+# Ohio state plane coordinates, NAD83/Ohio South, EPSG 32123
+county <- readOGR("GISlayers","OHCounty", verbose=F) 
+county.proj <- spTransform(county, CRS("+init=epsg:32123"))
+
+# Join data with county shapefile by the county ID number ("ID" in plscomp, "ID" in county)
+pls2 <- merge(county.proj, pls, by.x= "ID", by.y= "countyID", all.x=F)
+fia2 <- merge(county.proj, fia, by.x= "ID", by.y= "id", all.x=F)
+
+## calculate polygon centroids for 27 data counties
+pls.polyset <- SpatialPolygons2PolySet(pls2)
+centroids <- calcCentroid(pls.polyset, rollup=1)
+
+# combine centroids with data
+pls3 <- cbind(centroids, pls2)
+fia3 <- cbind(centroids, fia2)
+
+
+# extract only necessary columns
+speciesList <- names(pls3[17:31])
+pls.pies <- pls3[,c('ID','X','Y',speciesList)]
+fia.pies <- fia3[,c('ID','X','Y',speciesList)]
+
+#----plot the pies!----
+
+# set colors manually, using the 9 colors in "Set1" of RColorBrewer and then adding my own
+col <- c("#377EB8", "#984EA3", "#4DAF4A", "#E41A1C", "cyan2", "green", "#F781BF", "#0C2C84", "#FFFF33", "#FF7F00", "#A65628", "olivedrab1", "#999999", "#E7298A", "white")
+# legend names (corresponds with color order)
+species <- c("ash", "basswood", "beech", "cherry", "elm", "hackberry", "hickory", "honey locust", "maple", "oak", "pine", "sycamore", "tulip", "walnut", "other")
+
+# turn on to write file to disk
+png("exportedFigs/PieCharts_margTest.png", type = "cairo", units = "in", width = 7, height = 5, res = 300)
+
+par(mfrow=c(1,2))
+
+# PLS
+par(mar = c(2, 0.1, 0, 0.2)) 
+plot(county.proj) 
+title(main="Settlement Era")
+# add pie chart
+for (i in 1:27) {
+  floating.pie(pls.pies[i,2], pls.pies[i,3], 
+               x=pls.pies[i,4:18][!pls.pies[i,4:18]==0], radius=14000, 
+               col=col[!pls.pies[i,4:18]==0])
+}
+
+# FIA
+par(mar = c(2, 0.2, 0, 0.1)) 
+plot(county.proj) 
+title(main="Modern")
+# add pie chart
+for (i in 1:27) {
+  floating.pie(fia.pies[i,2], fia.pies[i,3], 
+               x=fia.pies[i,4:18][!fia.pies[i,4:18]==0], radius=14000, 
+               col=col[!fia.pies[i,4:18]==0])
+}
+
+par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
+plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
+# add legend
+legend("bottom", species, fill = col, border = "black", ncol=5, bty='n')
+
+
+dev.off()
 
 ```
+
+Figure: Change in Species Percentage
+-----------------------------------
+
+```{r SpeciesChange, fig.width=9, fig.height=6}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# fia data
+fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
+# pls data
+pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
+
+# calculate difference
+change2 <- cbind(fia[,c('id','County')], fia[,3:17]-pls[,3:17])
+
+# read in county shapefile and reproject for figure using
+# Ohio state plane coordinates, NAD83/Ohio South, EPSG 32123
+county <- readOGR("GISlayers","OHCounty", verbose=F) 
+county.proj <- spTransform(county, CRS("+init=epsg:32123"))
+
+# Join data with county shapefile by the county ID number 
+change3 <- merge(county.proj, change2, by.x= "ID", by.y= "id", all.x=TRUE)
+
+#png("exportedFigs/SpeciesChangeWorking.png", type = "cairo", units = "in", width = 7, height = 5, res = 300)
+
+
+## LATTICE PLOTS
+colchange <- c("blue4","blue3","blue","dodgerblue","cyan3","cyan","lightgreen",
+  "yellow","gold","orange","darkorange2","orangered2","darkred")
+spplot(change3[,14:28],col.regions=colchange, at=seq(-.55,.55,(.55+.55)/13),
+       as.table=T, colorkey=list(labels=list(cex=1.2)))
+#grid.text("Percent Difference", x=unit(0.97, "npc"), y=unit(0.50, "npc"), rot=90)
+
+# http://stackoverflow.com/questions/3932038/plot-a-legend-outside-of-the-plotting-area-in-base-graphics
+
+# #-------------------------
+#  set.seed(1) # just to get the same random numbers
+#  par(xpd=FALSE) # this is usually the default
+# 
+#  plot(1:3, rnorm(3), pch = 1, lty = 1, type = "o", ylim=c(-2,2), bty='L')
+#  # this legend gets clipped:
+#  legend(2.8,0,c("group A", "group B"), pch = c(1,2), lty = c(1,2))
+# 
+#  # so turn off clipping:
+#  par(xpd=TRUE)
+#  legend(2.8,-1,c("group A", "group B"), pch = c(1,2), lty = c(1,2))
+
+
+#dev.off()
+```
+
+
+
+
