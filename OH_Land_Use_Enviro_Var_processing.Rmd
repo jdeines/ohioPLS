@@ -12,12 +12,23 @@ This script summarizes land use and environmental variables by county for analys
 
 #### Inputs:
 * NLCD2006_OH.img - NLCD 2006 dataset clipped to Ohio in ArcGIS 
+* OHsoil.shp - NRCS STATSGO soil file (attributes joined in ArcGIS)
+* Environmental variable layers (described below)
 
 #### Crunching:
 * Summarizes land use by county
+* Process land use (category combinations, NMDS)
+* Rasterizes soil variables of interest
+* Extracts mean environmental variable value by county
+* Environmental variable plots
 
 #### Outputs:
 * OHCountyLandCover.csv
+* Soil layer rasters
+  * OH_soil_awc.img = available water content
+  * OH_soil_ph.img  = soil ph
+  * OH_soil_slope.img = slope
+* 
 
 #### Next steps:
 * Run analyses in OHAnalyses.Rmd
@@ -29,6 +40,7 @@ This assumes you have the file 'CleanCodeAndData' set as your working directory
 ```{r setup,message=FALSE}
 library(rgdal)
 library(raster)
+library(RColorBrewer)
 ```
 
 Land Use Summary by County
@@ -42,7 +54,8 @@ setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 # land cover raster
 landUse <- raster("GISlayers/NLCD_OH/NLCD2006_OH.img")
-landUse[landUse == 0] <- NA
+ohio <- readOGR("GISlayers/Ohio","Ohio")
+landUse2 <- mask(landUse, ohio, filename='GISlayers/NLCD_OH_mask.img')
 # county polygons
 county <- readOGR("GISlayers","OHCounty", verbose=F)
 
@@ -78,7 +91,7 @@ countyKey <- as.data.frame(county[,11:12])
 landcover2 <- merge(landcoverAC,countyKey,by.x='Polygon', by.y='ID', sort=F)
 landcover2 <- landcover2[,c(1,18,2:17)] # rearrange
 
-write.csv(landcover2,"R output/OHCountyLandCover.csv")
+write.csv(landcover2,"R output/OHCountyLandCover.csv", row.names=F)
 ```
 
 
@@ -93,10 +106,31 @@ Process environmental variable GIS layers for OH and summarize these variables b
 * soil available water content (STATSGO)
 * slope (STATSGO)
 
-### Create function for extract mean raster values by temperature
+### Rasterize soil data
+OHsoil.shp represents NCRS STATSGO soil data for Ohio. I originally joined the soil variables and the shapefile in ArcGIS at earlier phases of this project, so I will not repeat that here.
+
+```{r soilToRaster, eval=FALSE}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# soil data
+soil <- readOGR("GISlayers","OHsoil")
+
+# blank raster grid (5 arc second resolution)
+r <- raster(ncol=516, nrow=429, crs="+proj=longlat +datum=NAD83")  # create blank raster file
+extent(r) <- extent(soil)    					# give blank raster file same extent as the polygon file
+
+# awc_r = available water content
+soilwater <- rasterize(soil, r, 'awc_r', fun = mean, filename='GISlayers/OH_soil_awc.img')
+# slope_r  = average slope
+slope <- rasterize(soil, r, 'slope_r', fun = mean, filename='GISlayers/OH_soil_slope.img')
+# ph1to1h2o_r = ph -> truncated to ph1to1h2o1 when read in
+soilph <- rasterize(soil, r, 'ph1to1h2o1', fun = mean, filename='GISlayers/OH_soil_ph.img')
+```
+
+### Create function for extracting mean raster values by temperature
 
 ```{r extractFunction}
-extractVar <- function(rasterfile, polydir, polygonName) {
+extractVar <- function(rasterfile, spdf) {
   # Extracts raster cell values by polygon and takes the mean.
   # INPUTS: 
     # raster = raster file path
@@ -105,44 +139,105 @@ extractVar <- function(rasterfile, polydir, polygonName) {
   # RETURNS: 
   
   ras  <- raster(rasterfile)
-  poly <- readOGR(polydir,polygonName)
   
   # extract raster values by polygon (takes a minute to run)
-  overList = extract(ras,poly)
+  overList = extract(ras,spdf)
   
   # get mean raster value by polygon 
-  meanVal <- sapply(overList,mean)
+  meanVal <- sapply(overList,mean, na.rm=T)
   
   return(meanVal)
 }
 
 ```
 
-### Rasterize soil data
-OHsoil.shp 
-
-```{r soilToRaster}
-setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
-
-# county shapefile
-county <- readOGR("GISlayers","OHCounty", verbose=F) 
-# soil data
-soil <- readShapeSpatial("GISlayers/OHsoil.shp")
-
-
-```
-
 ### Extract county mean values for variables
+Additional data source information:
+* Annual precipitation, Minimum January Temperature, and Maximum January Temperature: data comes from PRISM Climate Group, Oregon State University. 2004. Available online at http://prism.oregonstate.edu. Accessed October 2011. The data are normals for 1971-2000; 1981-2010 became available in 2012 but are not used here. Data have a 30 arc-second (800 m) grid resolution; this file was clipped to the PalEON domain in ArcGIS.
+* Mean temperature: data comes from Worldclim, http://www.worldclim.org/current.Accessed fall 2012. Methodology for data here: http://www.worldclim.org/methods. This data is the average temperature for 1960-1990 (generally), .08333 grid cell size. Data is distributed tmean by month; in ArcGIS, we converted the GCS from WGS84 to NAD83, averaged all 12 months to get annual average, and clipped to the PalEON domain 
+* Soil: statsgo (see above)
 
-```{r extractValues}
+```{r extractValues, eval=FALSE}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
-polydir <- 'GISlayers'
-polygonName <- 'OHCounty'
+# county boundary shapefile
+county <- readOGR("GISlayers","OHCounty", verbose=F) 
+
+#----Get county Means----#
+precip <- 'GISlayers/ppt_annuPal.img'
+meanPrecip <- extractVar(precip, county)
+meanPrecip <- meanPrecip / 100
+
+tmean <- 'GISlayers/tmean14Pal.img'
+meanTemp <- extractVar(tmean, county)
+meanTemp <- meanTemp / 10
+
+tminjan <- "GISlayers/tminjanP.img"
+meantmin <- extractVar(tminjan, county)
+meantmin <- meantmin / 100
+
+tmaxjul <- "GISlayers/tmaxjulP.img"
+meantmax <- extractVar(tmaxjul, county)
+meantmax <- meantmax / 100
+
+soilh20 <- "GISlayers/OH_soil_awc.img"
+meansoilwater <- extractVar(soilh20, county)
+
+soilSlope <- 'GISlayers/OH_soil_slope.img'
+meanslope <- extractVar(soilSlope, county)
+
+soil_ph <- 'GISlayers/OH_soil_ph.img'
+meansoilph <- extractVar(soil_ph, county)
+
+OHenvar <- data.frame(countyID = county$ID,
+                      countyName = county$CountyName, 
+                      soilph = meansoilph, 
+                      slope = meanslope, 
+                      soilh2o = meansoilwater, 
+                      tempann = meanTemp, 
+                      pptann = meanPrecip, 
+                      tminjan = meantmin, 
+                      tmaxjul = meantmax)
+
+write.csv(OHenvar, 'R output/OH_EnviroVarCountySummary.csv', row.names=F)
+```
+
+```{r enviroVar_fig}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+landUse <- raster("GISlayers/NLCD_OH/NLCD2006_OH.img")
+envar <- read.csv('R output/OH_EnviroVarCountySummary.csv')
+county <- readOGR("GISlayers","OHCounty", verbose=F)
+county.proj <- spTransform(county[,11:12], CRS("+init=epsg:32123"))
+
+# add envar attribute data to county polygons
+envarMap <- merge(county.proj, envar, by.x = "ID", by.y = "countyID", all.x = TRUE)
+
+# store a bunch of spplots to combine below
+slope <- spplot(envarMap[,5], col.regions=terrain.colors(16))
+soilph <- spplot(envarMap[,4], col.regions=heat.colors(16))
+soilh20 <- spplot(envarMap[,6], col.regions=rev(topo.colors(16)))
+pptann <- spplot(envarMap[,8], col.regions = rev(topo.colors(16)))
+tempann <- spplot(envarMap[,7], col.regions = rev(brewer.pal(10, "RdYlBu")), 
+                  at=seq(17.4,20.3,((20.3-17.4)/10)))
+tminjan <- spplot(envarMap[,9], col.regions = rev(brewer.pal(9, "Blues")), 
+                  at=seq(-9.66, -5.86, ((9.66-5.86)/9)))
+tmaxjul <- spplot(envarMap[,10], col.regions = brewer.pal(9, "OrRd"), 
+                  at=seq(27.20, 30.35, ((30.35-27.20)/9)))
+#plot(landUse)
+
+# plot trellis objects in a matrix
+plot(pptann, split=c(1,1,4,2), main="Annual Precip", more=TRUE)
+plot(tempann, split=c(2,1,4,2), main="Mean Annual Temp", more=TRUE)
+plot(tminjan, split=c(3,1,4,2), main="Min January Temp", more=TRUE)
+plot(tmaxjul, split=c(4,1,4,2), main="Max July Temp", more=TRUE)
+plot(soilph, split=c(1,2,4,2), main="Soil pH", more=TRUE)
+plot(soilh20, split=c(2,2,4,2), main="Soil Water", more=TRUE)
+plot(slope, split=c(3,2,4,2), main="Average Slope", more=FALSE)
+#plot(landuse, split=c(4,2,4,2), more=FALSE)
+
 
 
 
 
 ```
-
-
