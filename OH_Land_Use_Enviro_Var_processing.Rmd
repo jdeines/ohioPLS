@@ -23,12 +23,12 @@ This script summarizes land use and environmental variables by county for analys
 * Environmental variable plots
 
 #### Outputs:
-* OHCountyLandCover.csv
+* OHCountyLandCover.csv - land use summary
 * Soil layer rasters
   * OH_soil_awc.img = available water content
   * OH_soil_ph.img  = soil ph
   * OH_soil_slope.img = slope
-* 
+* OH_EnviroVarCountySummary.csv - environmental variables summary
 
 #### Next steps:
 * Run analyses in OHAnalyses.Rmd
@@ -202,7 +202,10 @@ OHenvar <- data.frame(countyID = county$ID,
 write.csv(OHenvar, 'R output/OH_EnviroVarCountySummary.csv', row.names=F)
 ```
 
-```{r enviroVar_fig}
+Plot Ohio Environmental Variables
+----------------------------
+
+```{r enviroVar_fig, fig.width=8,fig.height=4}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 landUse <- raster("GISlayers/NLCD_OH/NLCD2006_OH.img")

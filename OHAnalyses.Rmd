@@ -19,12 +19,163 @@ This script relies on output from the following scripts:
 * OH_Land_Use_Enviro_Var_processing.Rmd
 
 #### Inputs:
-* 
+* OHcountyLandCover.csv
+* OH_EnviroVarCountySummary.csv
+* OH_county_centroids_projected.csv 
+* OHCompCleanPLS_percent.csv
+* OHCompCleanFIA_percent.csv
 
 #### Crunching:
 * 
 
 #### Outputs:
+* OHCountyLandCover_aggregated.csv
 * 
+
+Working directory and packages
+------------------------------
+This assumes you have the file 'CleanCodeAndData' set as your working directory
+
+```{r setup,message=FALSE}
+library(ecodist)
+library(corrplot)
+library(RColorBrewer)
+```
+
+Land Use Processing and NMDS
+------------------------
+Purpose: combine a few land use classes and collapse land use variables into 1 axis for subsequent analysis
+
+### Aggregate Land Use Data
+```{r landUse_agg, eval=FALSE}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# load county land use summary
+OHlc<-read.csv("R Output/OHCountyLandCover.csv")
+
+# clean data: combine similar land use classes 
+OHlc1 <- cbind(OHlc[,c('Polygon','CountyName','openWater','developedOpen')],
+               "developed"=rowSums(OHlc[,c('developedLow','developedMedium',
+                                           'developedHigh')]),
+                "barren" = OHlc$barren,
+                "forest" = rowSums(OHlc[,c('forestDec','forestEver','forestMix')]),
+                OHlc[,c('shrub','grassland','pasture','crops')],  
+                "wetlands"=rowSums(OHlc[,c('wetlandsWoody','wetlandsHerb')]),
+                "numcells" = OHlc$numcells)   
+
+# remove county polygons that have no overlap with land use data (ie, parts of Ottawa county that are islands in Lake Michigan)
+OHlc2 <- OHlc1[OHlc1$numcells != 0,]
+
+write.csv(OHlc2,"R Output/OHCountyLandCover_aggregated.csv",row.names=F)
+```
+
+
+Correlations
+--------------------------
+
+```{r Correlations}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# read in data
+pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
+fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
+envar <- read.csv("R output/OH_EnviroVarCountySummary.csv")
+landuse <- read.csv("R Output/OHCountyLandCover_aggregated.csv")
+centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
+
+# subset enviro and land use to 27 data counties, add coords
+envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", all.y = FALSE)
+landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", all.y = FALSE)
+
+# arcsine squareroot transform proportional data (land use, pls, fia)
+pls[,3:17]     <- asin(sqrt(pls[,3:17]))		
+fia[,3:17]     <- asin(sqrt(fia[,3:17]))	
+landuse2[,5:14] <- asin(sqrt(landuse2[,5:14])) 
+
+# correlations among PLS species and enviro var (OHenvar3[,3:9])
+# look up the "cor" function (?cor; google "R cor"...)
+pls.env <-cor(OHenvar3[,3:9], pls[,4:18])	# 8 environmental variables, pls
+fia.env <-cor(OHenvar3[,3:9], fia[,4:18])	# 8 environmental variables, fia
+cor(OHenvar3[,3:9], OHenvar3[,11:20])	# environ variables vs land use	
+pls.land <- cor(OHenvar3[,11:20], fia[,4:18])	# land use, fia
+fia.land <- cor(OHenvar3[,11:20], pls[,4:18])	# land use, pls
+
+# Jill's correlation plots by species 
+#pls/environmental variables
+corrplot(pls.env, method="color", addCoef.col="black", title="PLS", tl.col="black", 
+  col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
+#fia/enviro
+corrplot(fia.env, method="color", addCoef.col="black", title="FIA", tl.col="black", 
+	col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
+
+
+#pls/land use
+corrplot(pls.land, method="color", addCoef.col="black", title="PLS", tl.col="black", 
+	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+#fia/land use
+corrplot(fia.land, method="color", addCoef.col="black", title="FIA", tl.col="black", 
+	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+
+# Dan's correlation plots to make figures for talk
+#PLS and FIA partial mantel scores for land use variables
+mantel <- read.table("R output/OHMantelValues.csv", header=TRUE, row.names=1, sep=",")
+mantel1<- as.matrix(mantel)
+
+corrplot(mantel1[,c(1,3)], method="color", addCoef.col="black", p.mat=mantel1[,c(2,4)], 
+  sig.level=0.025, insig="blank", cl.ratio=1, title="Land-Use", tl.col="black", 
+	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+
+#PLS and FIA partial mantel scores for environmental variables
+enviro <- read.table("R output/OHEnvValues.csv", header=TRUE, row.names=1, sep=",")
+enviro1<- as.matrix(enviro)
+
+corrplot(enviro1[,c(1,3)], method="color", addCoef.col="black", p.mat=mantel1[,c(2,4)], 
+	sig.level=0.025, cl.ratio=1, insig="blank", title="Environment", tl.col="black", 
+	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+
+# Get Rid of P-Value Significance #
+corrplot(mantel1[,c(1,3)], method="color", addCoef.col="black", cl.ratio=1, 
+	title="Land-Use", tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+
+corrplot(enviro1[,c(1,3)], method="color", addCoef.col="black", cl.ratio=1, title="Environment", 
+	tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+
+# Dan creating output: 
+pls.cor<-cor(OHenvar3[,11:20], pls[,4:18])
+write.csv(pls.cor,"R output/PLScorrelation.csv")
+
+fia.cor<-cor(OHenvar3[,11:20], fia[,4:18])
+write.csv(fia.cor,"R output/FIAcorrelation.csv")
+```
+
+
+### Perform NMDS
+### Mantel tests? 1000 permutations seems standard??
+
+```{r landUse_NMDS}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+OHlc3 <- read.csv("R Output/OHCountyLandCover_aggregated.csv")
+
+# arcsine squareroot transform proportional data
+OHlc3[,3:12]<- asin(sqrt(OHlc3[,3:12])) 
+
+library(ecodist)		# for NMDS
+
+# calculate distance matrix on land use data columns
+OHlcDist <- distance(OHlc3[,3:12], method = "euclidean")
+
+# Run NMDS with only 1 dimension to generate 1 land use value for each county for plotting/correlations:
+lcNmds.1 <- nmds(OHlcDist, maxdim = 1)
+
+# View the results for each interation/configurations
+lcNmds.1$stress	# can be thought of as 1-r2
+lcNmds.1$r2		# Percent variation each configuration explains
+
+# get minimum stress values for each county (to be joined to OHenvar below)
+lc.nmds.min.1 <- nmds.min(lcNmds.1)   
+lc.nmds.min.1 <- lc.nmds.min.1[,1]    # cheap hack to turn data frame into vector so the column renames correctlyl in the csv output		
+
+```
+
 
 
