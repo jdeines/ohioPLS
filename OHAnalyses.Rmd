@@ -1,3 +1,4 @@
+
 ```{r options, include=FALSE}
 opts_chunk$set(cache = TRUE)
 ```
@@ -6,7 +7,7 @@ Ohio Analyses
 ========================================================
 
 Jillian Deines  
-March 2014  
+March 2014
 
 This script analyses correlations among Ohio vegetation (historic and modern) and covariates (land use and environmental variables).
 
@@ -14,7 +15,7 @@ Analyses aim to describe presettlement vegetation in Ohio and examine relationsh
 modern vegetation (using FIA data), historic vegetation, land use, and environmental variables.
 
 #### Depends:
-This script relies on output from the following scripts:
+This script relies on output from the following scripts
 * PLS_FIA_data_crunching.Rmd
 * OH_Land_Use_Enviro_Var_processing.Rmd
 
@@ -37,6 +38,7 @@ Working directory and packages
 This assumes you have the file 'CleanCodeAndData' set as your working directory
 
 ```{r setup,message=FALSE}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 library(ecodist)
 library(corrplot)
 library(RColorBrewer)
@@ -46,10 +48,10 @@ Land Use Processing and NMDS
 ------------------------
 Purpose: combine a few land use classes and collapse land use variables into 1 axis for subsequent analysis
 
-### Aggregate Land Use Data
-```{r landUse_agg, eval=FALSE}
-setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+### Aggregate Land Use Data 
+Chunk already run with intermediate output saved
 
+```{r landUse_agg, eval=FALSE}
 # load county land use summary
 OHlc<-read.csv("R Output/OHCountyLandCover.csv")
 
@@ -72,6 +74,10 @@ write.csv(OHlc2,"R Output/OHCountyLandCover_aggregated.csv",row.names=F)
 
 Correlations
 --------------------------
+PLS, FIA, environmental variables, and land use summaries are analyzed for correlations.  
+* Proportional species composition data is arc sine square root transformed
+
+**Note:** In previous versions of this script prior to Jill's pre-publication cleaning effort, there was a typo in the land use/composition correlations where the correlation between land use and PLS composition was stored as the variable 'fia.land', and vice versa. **Thus the patterns between land use and composition previously described in Dan's thesis version are reversed**. The number of the correlations differs due to data cleaning, but the pattern of strong/weak and positive/negative correlations is reversed.
 
 ```{r Correlations}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
@@ -92,61 +98,34 @@ pls[,3:17]     <- asin(sqrt(pls[,3:17]))
 fia[,3:17]     <- asin(sqrt(fia[,3:17]))	
 landuse2[,5:14] <- asin(sqrt(landuse2[,5:14])) 
 
-# correlations among PLS species and enviro var (OHenvar3[,3:9])
-# look up the "cor" function (?cor; google "R cor"...)
-pls.env <-cor(OHenvar3[,3:9], pls[,4:18])	# 8 environmental variables, pls
-fia.env <-cor(OHenvar3[,3:9], fia[,4:18])	# 8 environmental variables, fia
-cor(OHenvar3[,3:9], OHenvar3[,11:20])	# environ variables vs land use	
-pls.land <- cor(OHenvar3[,11:20], fia[,4:18])	# land use, fia
-fia.land <- cor(OHenvar3[,11:20], pls[,4:18])	# land use, pls
+# correlations: composition vs enviro, landuse 
+plsEnvCor <-cor(envar2[,5:11], pls[,3:17])	
+fiaEnvCor <-cor(envar2[,5:11], fia[,3:17])	
+#cor(OHenvar3[,3:9], OHenvar3[,11:20])	# environ variables vs land use	
+plsLandCor <- cor(landuse2[,5:14], pls[,3:17])	
+fiaLandCor <- cor(landuse2[,5:14], fia[,3:17])	
+```
 
-# Jill's correlation plots by species 
+### Correlation Plots
+Needed: Nicer axis labels, significance indication?
+```{r CorrPlots, echo=FALSE}
 #pls/environmental variables
-corrplot(pls.env, method="color", addCoef.col="black", title="PLS", tl.col="black", 
+corrplot(plsEnvCor, method="color", addCoef.col="black", title="PLS-Enviroment", tl.col="black", 
   col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
 #fia/enviro
-corrplot(fia.env, method="color", addCoef.col="black", title="FIA", tl.col="black", 
-	col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
-
+corrplot(fiaEnvCor, method="color", addCoef.col="black", title="FIA-Environment", tl.col="black", 
+  col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
 
 #pls/land use
-corrplot(pls.land, method="color", addCoef.col="black", title="PLS", tl.col="black", 
-	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+corrplot(plsLandCor, method="color", addCoef.col="black", title="PLS-Land Use", tl.col="black", 
+  col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
 #fia/land use
-corrplot(fia.land, method="color", addCoef.col="black", title="FIA", tl.col="black", 
+corrplot(fiaLandCor, method="color", addCoef.col="black", title="FIA-Land Use", tl.col="black", 
 	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
-
-# Dan's correlation plots to make figures for talk
-#PLS and FIA partial mantel scores for land use variables
-mantel <- read.table("R output/OHMantelValues.csv", header=TRUE, row.names=1, sep=",")
-mantel1<- as.matrix(mantel)
-
-corrplot(mantel1[,c(1,3)], method="color", addCoef.col="black", p.mat=mantel1[,c(2,4)], 
-  sig.level=0.025, insig="blank", cl.ratio=1, title="Land-Use", tl.col="black", 
-	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
-
-#PLS and FIA partial mantel scores for environmental variables
-enviro <- read.table("R output/OHEnvValues.csv", header=TRUE, row.names=1, sep=",")
-enviro1<- as.matrix(enviro)
-
-corrplot(enviro1[,c(1,3)], method="color", addCoef.col="black", p.mat=mantel1[,c(2,4)], 
-	sig.level=0.025, cl.ratio=1, insig="blank", title="Environment", tl.col="black", 
-	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
-
-# Get Rid of P-Value Significance #
-corrplot(mantel1[,c(1,3)], method="color", addCoef.col="black", cl.ratio=1, 
-	title="Land-Use", tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
-
-corrplot(enviro1[,c(1,3)], method="color", addCoef.col="black", cl.ratio=1, title="Environment", 
-	tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
-
-# Dan creating output: 
-pls.cor<-cor(OHenvar3[,11:20], pls[,4:18])
-write.csv(pls.cor,"R output/PLScorrelation.csv")
-
-fia.cor<-cor(OHenvar3[,11:20], fia[,4:18])
-write.csv(fia.cor,"R output/FIAcorrelation.csv")
 ```
+
+
+
 
 
 ### Perform NMDS

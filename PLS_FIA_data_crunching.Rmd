@@ -74,7 +74,7 @@ treeNames <- c(levels(corners$SP1), levels(corners$SP2), levels(corners$SP3), le
 species <- sort(unique(treeNames)) # alphabetize
 species <- species[!species %in% c('no tree')] # remove 'no tree' category
 
-# Identify which polygon (in "county") each point in corners falls within using an overlay and store as new column
+# Identify which polygon (in "county") each point in corners falls within 
 corners$countyID <- over(corners, county)$ID
 
 
@@ -92,8 +92,8 @@ comp.df$sugarmaple <- comp.df$sugarmaple + comp.df$sugarmpale
 comp.df <- rename(comp.df, c('sugarmaple' = "sugar maple"))
 comp.df <- subset(comp.df, select=-c(Poplar,sugarmpale))
 
-#add a column that is the sum of the trees for each county (sum row excluding county column)
-comp.df <-cbind(comp.df,total=rowSums(comp.df[,-1]))
+# sum the trees for each county (sum row excluding county column)
+comp.df$total <- rowSums(comp.df[,-1])
 
 # add county names to output
 countyKey <- as.data.frame(county[,11:12])
