@@ -127,6 +127,17 @@ landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", all.y = FAL
 pls[,3:17]     <- asin(sqrt(pls[,3:17]))  	
 fia[,3:17]     <- asin(sqrt(fia[,3:17]))	
 landuse2[,5:14] <- asin(sqrt(landuse2[,5:14])) 
+
+
+# lat/long coords - note the indexing is wrong in OHAnalysesV3.r
+county.cent <- read.csv("C:/Users/deinesji/Dropbox/Dan_Williams/OhioRGIS-Old_code_data/R output/OHCountyPLScentroids.csv") 
+# extract county ID (ID), longitude (X.1), latitude (Y)
+latlong <- county.cent[,c(4,2,3)]
+
+
+
+# calculate distance between centroid locations
+
 ```
 
 ### Big Picture: Enviroment/climate vs Land Use
@@ -141,10 +152,15 @@ FIAdist <- ecodist::distance(fia[,3:17], method= "bray-curtis")
 PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
 
 # ----- spatial autocoreelation -----------
-spatialDist<- ecodist::distance(centroids[,2:3], method = "euclidean")
+spatialDist<- ecodist::distance(centroids[,c('X','Y')], method = "euclidean")
+latlongDist <- ecodist::distance(latlong[,c('X','Y')], method = "euclidean")
 
-PLS_space <- mantel(PLSdist ~ spatialDist, nperm=10000)
-FIA_space <- mantel(FIAdist ~ spatialDist, nperm=10000)
+PLS_space <- mantel(PLSdist ~ spatialDist, nperm=1000)
+FIA_space <- mantel(FIAdist ~ spatialDist, nperm=1000)
+
+PLS_space <- mantel(PLSdist ~ latlongDist, nperm=1000)
+FIA_space <- mantel(FIAdist ~ latlongDist, nperm=1000)
+
 # yes, data is spatially correlated
 
 # ----- total enviro and land use ------------
@@ -152,17 +168,22 @@ luDist <- ecodist::distance(landuse2[,5:14], method = "euclidean")
 envirDist <- ecodist::distance(envar2[,5:11], method = "euclidean")
 
 # species vs environment, given effects of space
-PLS_env_space <- mantel(PLSdist ~ envirDist + spatialDist, nperm=10000)
-FIA_env_space <- mantel(FIAdist ~ envirDist + spatialDist, nperm=10000)
+PLS_env_space <- mantel(PLSdist ~ envirDist + spatialDist, nperm=1000)
+FIA_env_space <- mantel(FIAdist ~ envirDist + spatialDist, nperm=1000)
 
-mantel(FIAdist ~ spatialDist + envirDist, nperm=10000)
-mantel(PLSdist ~ spatialDist + envirDist, nperm=10000)
+PLS_env_space_ll <- mantel(PLSdist ~ envirDist + latlongDist, nperm=1000)
+FIA_env_space_ll <- mantel(FIAdist ~ envirDist + latlongDist, nperm=1000)
 
-PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist, nperm=10000)
-FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist, nperm=10000)
+PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist, nperm=1000)
+FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist, nperm=1000)
+
+PLS_lu_space_ll <- mantel(PLSdist ~ luDist + latlongDist, nperm=1000)
+FIA_lu_space_ll <- mantel(FIAdist ~ luDist + latlongDist, nperm=1000)
 ```
 
 These results are quite different from previous results; one thing that changed is the projection of my centroids (used to be lat long, now are projected)
+
+Using lat/long coordinates at 1000 permutations reproduces previous results, more or less
 
 
 
