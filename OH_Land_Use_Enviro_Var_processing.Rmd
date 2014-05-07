@@ -121,7 +121,7 @@ OHlc1 <- cbind(OHlc[,c('Polygon','CountyName','openWater','developedOpen')],
 # remove county polygons that have no overlap with land use data (ie, parts of Ottawa county that are islands in Lake Michigan)
 lcNmds <- OHlc1[OHlc1$numcells != 0,]
 
-# subset enviro and land use to 27 data counties, add coords
+# subset to 27 data counties, add coords
 centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
 lcNmds27 <- merge(centroids, lcNmds, by.x = "ID", by.y = "Polygon", all.y = FALSE)
 
@@ -146,20 +146,23 @@ nmds27$r2
 
 # get minimum stress values for each county 
 nmdsMin <- nmds.min(nmdsAll)  
+nmdsMin$ID <- lcNmds$Polygon
+colnames(nmdsMin) <- c('nmdsAll','ID')
+
 nmdsMin27 <- nmds.min(nmds27)  
 nmdsMin27$ID <- centroids[,1] 
 colnames(nmdsMin27) <- c('nmds27','ID')
 
 # add nmds output to csv
-lcNmds$nmdsAll <- nmdsMin[,1]
-lcNmdsOut <- merge(lcNmds,nmdsMin27, by.x='Polygon', by.y='ID',all=T)
+lcNmdsOut <- merge(OHlc1,nmdsMin, by.x='Polygon', by.y='ID',all=T)
+lcNmdsOut2 <- merge(lcNmdsOut,nmdsMin27, by.x='Polygon', by.y='ID',all=T)
 
 # visualize nmds output
 county <- readOGR("GISlayers","OHCounty", verbose=F)
-countyTest <- merge(county, lcNmdsOut[,c(1,14:15)], by.x='ID',by.y = 'Polygon')
-spplot(countyTest,c('nmdsAll','nmds27'), col.regions=colorRampPalette(c('forestgreen','gray88', 'darkmagenta'))(20))
+countyTest <- merge(county, lcNmdsOut2[,c(1,14:15)], by.x='ID',by.y = 'Polygon')
+spplot(countyTest,c('nmdsAll','nmds27'), col.regions=colorRampPalette(c('darkmagenta','gray88', 'forestgreen'))(20))
 
-write.csv(lcNmdsOut,"R Output/OHCountyLandCover_aggregated_nmds.csv",row.names=F)
+write.csv(lcNmdsOut2,"R Output/OHCountyLandCover_aggregated_nmds.csv",row.names=F)
 ```
 
 
