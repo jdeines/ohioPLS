@@ -27,6 +27,8 @@ This script relies on output from the following scripts
 * OHCompCleanFIA_percent.csv
 
 #### Crunching:
+* Aggregate land use classes
+* Basic correlation matrices between county composition (FIA/PLS) and 1) environmental variables and 2) land use
 * 
 
 #### Outputs:
@@ -42,33 +44,6 @@ setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 library(ecodist)
 library(corrplot)
 library(RColorBrewer)
-```
-
-Land Use Processing and NMDS
-------------------------
-Purpose: combine a few land use classes and collapse land use variables into 1 axis for subsequent analysis
-
-### Aggregate Land Use Data 
-Chunk already run with intermediate output saved
-
-```{r landUse_agg, eval=FALSE}
-# load county land use summary
-OHlc<-read.csv("R Output/OHCountyLandCover.csv")
-
-# clean data: combine similar land use classes 
-OHlc1 <- cbind(OHlc[,c('Polygon','CountyName','openWater','developedOpen')],
-               "developed"=rowSums(OHlc[,c('developedLow','developedMedium',
-                                           'developedHigh')]),
-                "barren" = OHlc$barren,
-                "forest" = rowSums(OHlc[,c('forestDec','forestEver','forestMix')]),
-                OHlc[,c('shrub','grassland','pasture','crops')],  
-                "wetlands"=rowSums(OHlc[,c('wetlandsWoody','wetlandsHerb')]),
-                "numcells" = OHlc$numcells)   
-
-# remove county polygons that have no overlap with land use data (ie, parts of Ottawa county that are islands in Lake Michigan)
-OHlc2 <- OHlc1[OHlc1$numcells != 0,]
-
-write.csv(OHlc2,"R Output/OHCountyLandCover_aggregated.csv",row.names=F)
 ```
 
 
@@ -125,36 +100,62 @@ corrplot(fiaLandCor, method="color", addCoef.col="black", title="FIA-Land Use", 
 ```
 
 
+Mantel Tests
+---------------------------
 
-
-
-### Perform NMDS
 ### Mantel tests? 1000 permutations seems standard??
 
-```{r landUse_NMDS}
-setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
-OHlc3 <- read.csv("R Output/OHCountyLandCover_aggregated.csv")
 
-# arcsine squareroot transform proportional data
-OHlc3[,3:12]<- asin(sqrt(OHlc3[,3:12])) 
 
-library(ecodist)		# for NMDS
 
-# calculate distance matrix on land use data columns
-OHlcDist <- distance(OHlc3[,3:12], method = "euclidean")
 
-# Run NMDS with only 1 dimension to generate 1 land use value for each county for plotting/correlations:
-lcNmds.1 <- nmds(OHlcDist, maxdim = 1)
+Composition NMDS
+----------------------------
+Code raw from previous version - not yet updated
 
-# View the results for each interation/configurations
-lcNmds.1$stress	# can be thought of as 1-r2
-lcNmds.1$r2		# Percent variation each configuration explains
+```{r}
+## NMDS for PLS Data##
 
-# get minimum stress values for each county (to be joined to OHenvar below)
-lc.nmds.min.1 <- nmds.min(lcNmds.1)   
-lc.nmds.min.1 <- lc.nmds.min.1[,1]    # cheap hack to turn data frame into vector so the column renames correctlyl in the csv output		
+#run NMDS
+PLS.NMDS<-nmds(PLS.dist, maxdim=2)
 
+#view results for each iteration
+PLS.NMDS$stress #1-r^2
+PLS.NMDS$r2 #percent variation each configuration explains
+
+# get the NMDS scores for each county for the configuration which had the minimum
+#stress values, aka captures the most variance in the data, or has the
+# maximum r2 value
+
+PLS.nmds.min<- nmds.min(PLS.NMDS)
+
+#Plot NMDS min stress result
+plot(PLS.nmds.min)
+
+#Fit vectors for the main variables to the NMDS configuration
+PLS.nmds.vf<- vf(PLS.nmds.min, pls[,4:18], nperm=10) #why 10?
+plot(PLS.nmds.vf, col="blue")
+
+## NMDS for FIA Data ##
+
+#run NMDS
+FIA.NMDS<-nmds(FIA.dist, maxdim=2)
+
+#view results for each iteration
+FIA.NMDS$stress #1-r^2
+FIA.NMDS$r2 #percent variation each configuration explains
+
+# get the NMDS scores for each county for the configuration which had the minimum
+#stress values, aka captures the most variance in the data, or has the
+# maximum r2 value
+
+FIA.nmds.min<- nmds.min(FIA.NMDS)
+
+#Plot NMDS min stress result
+plot(FIA.nmds.min)
+
+#Fit vectors for the main variables to the NMDS configuration
+FIA.nmds.vf<- vf(PLS.nmds.min, pls[,4:18], nperm=10) #why 10?
+plot(FIA.nmds.vf, col="blue")
 ```
-
-
 
