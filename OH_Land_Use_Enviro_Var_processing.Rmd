@@ -24,6 +24,7 @@ This script summarizes land use and environmental variables by county for analys
 
 #### Outputs:
 * OHCountyLandCover.csv - land use summary
+* OHCountyLandCover_aggregated_nmds.csv - includes nmds values
 * Soil layer rasters
   * OH_soil_awc.img = available water content
   * OH_soil_ph.img  = soil ph
@@ -40,14 +41,17 @@ This assumes you have the file 'CleanCodeAndData' set as your working directory
 ```{r setup,message=FALSE}
 library(rgdal)
 library(raster)
+library(ecodist) 
 library(RColorBrewer)
 ```
 
 Land Use Summary by County
 ---------------------------
+
+### Land Use Summary
 This section takes the National Land Cover Database (2006) raster for Ohio and extracts the percentages of each type of land use by county
 
-NOTE: The overlay in this session takes a decent amount of time to run (1 hour +).
+NOTE: The overlay in this session takes a decent amount of time to run (1 hour +). Output has been written to .csv.
 
 ```{r landUseSummary, eval=FALSE}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
@@ -95,6 +99,70 @@ write.csv(landcover2,"R output/OHCountyLandCover.csv", row.names=F)
 ```
 
 
+### Aggregate Land Use Data and NMDS
+Combines similar land use classes and collapses county land use composition into one variable along the 'principle component' for subsequent analyses. NMDS is run for all Ohio counties, as well as on the subset of 27 counties with PLS data.
+
+Chunk already run with output saved.
+
+```{r landUse_agg_NMDS, eval=FALSE}
+# load county land use summary
+OHlc<-read.csv("R Output/OHCountyLandCover.csv")
+
+# clean data: combine similar land use classes 
+OHlc1 <- cbind(OHlc[,c('Polygon','CountyName','openWater','developedOpen')],
+               "developed"=rowSums(OHlc[,c('developedLow','developedMedium',
+                                           'developedHigh')]),
+                "barren" = OHlc$barren,
+                "forest" = rowSums(OHlc[,c('forestDec','forestEver','forestMix')]),
+                OHlc[,c('shrub','grassland','pasture','crops')],  
+                "wetlands"=rowSums(OHlc[,c('wetlandsWoody','wetlandsHerb')]),
+                "numcells" = OHlc$numcells)   
+
+# remove county polygons that have no overlap with land use data (ie, parts of Ottawa county that are islands in Lake Michigan)
+lcNmds <- OHlc1[OHlc1$numcells != 0,]
+
+# subset enviro and land use to 27 data counties, add coords
+centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
+lcNmds27 <- merge(centroids, lcNmds, by.x = "ID", by.y = "Polygon", all.y = FALSE)
+
+# arcsine squareroot transform proportional data 
+lcNmds[,3:12] <- asin(sqrt(lcNmds[,3:12]))     
+lcNmds27[,5:14] <- asin(sqrt(lcNmds27[,5:14]))  
+
+# calculate distance matrix on land use data columns
+library(ecodist) 
+lcDist <- ecodist::distance(lcNmds[,3:12], method = "euclidean")
+lcDist27 <- ecodist::distance(lcNmds27[,5:14], method = "euclidean")
+
+# Run NMDS with only 1 dimension to generate 1 land use value for each county for plotting/correlations:
+nmdsAll <- nmds(lcDist, maxdim = 1)
+nmds27 <- nmds(lcDist27, maxdim = 1)
+
+# View the results for each interation/configurations
+nmdsAll$stress	# can be thought of as 1-r2
+nmdsAll$r2		# Percent variation each configuration explains
+
+nmds27$r2
+
+# get minimum stress values for each county 
+nmdsMin <- nmds.min(nmdsAll)  
+nmdsMin27 <- nmds.min(nmds27)  
+nmdsMin27$ID <- centroids[,1] 
+colnames(nmdsMin27) <- c('nmds27','ID')
+
+# add nmds output to csv
+lcNmds$nmdsAll <- nmdsMin[,1]
+lcNmdsOut <- merge(lcNmds,nmdsMin27, by.x='Polygon', by.y='ID',all=T)
+
+# visualize nmds output
+county <- readOGR("GISlayers","OHCounty", verbose=F)
+countyTest <- merge(county, lcNmdsOut[,c(1,14:15)], by.x='ID',by.y = 'Polygon')
+spplot(countyTest,c('nmdsAll','nmds27'), col.regions=colorRampPalette(c('forestgreen','gray88', 'darkmagenta'))(20))
+
+write.csv(lcNmdsOut,"R Output/OHCountyLandCover_aggregated_nmds.csv",row.names=F)
+```
+
+
 Environmental Variables
 -----------------------------
 Process environmental variable GIS layers for OH and summarize these variables by county. Variables include:
@@ -127,7 +195,7 @@ slope <- rasterize(soil, r, 'slope_r', fun = mean, filename='GISlayers/OH_soil_s
 soilph <- rasterize(soil, r, 'ph1to1h2o1', fun = mean, filename='GISlayers/OH_soil_ph.img')
 ```
 
-### Create function for extracting mean raster values by temperature
+### Create function for extracting mean raster values by county
 
 ```{r extractFunction}
 extractVar <- function(rasterfile, spdf) {
