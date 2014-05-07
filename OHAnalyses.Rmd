@@ -61,7 +61,7 @@ setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
 fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
 envar <- read.csv("R output/OH_EnviroVarCountySummary.csv")
-landuse <- read.csv("R Output/OHCountyLandCover_aggregated.csv")
+landuse <- read.csv("R Output/OHCountyLandCover_aggregated_nmds.csv")
 centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
 
 # subset enviro and land use to 27 data counties, add coords
@@ -103,7 +103,76 @@ corrplot(fiaLandCor, method="color", addCoef.col="black", title="FIA-Land Use", 
 Mantel Tests
 ---------------------------
 
-### Mantel tests? 1000 permutations seems standard??
+Other thoughts for Alex's notes: 
+* This is areal/zonal data (vs points or continuous)
+* Proximity: currently use county centroids in some fashion...but whaat about common boundary?
+
+ Mantel tests? 1000 permutations seems standard??
+### Load Data and Get Distance Matrices
+
+```{r Mantels_loadData}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
+fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
+envar <- read.csv("R output/OH_EnviroVarCountySummary.csv")
+landuse <- read.csv("R Output/OHCountyLandCover_aggregated_nmds.csv")
+centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
+
+# subset enviro and land use to 27 data counties, add coords
+envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", all.y = FALSE)
+landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", all.y = FALSE)
+
+# arcsine squareroot transform proportional data (land use, pls, fia)
+pls[,3:17]     <- asin(sqrt(pls[,3:17]))  	
+fia[,3:17]     <- asin(sqrt(fia[,3:17]))	
+landuse2[,5:14] <- asin(sqrt(landuse2[,5:14])) 
+```
+
+### Big Picture: Enviroment/climate vs Land Use
+Reference: Goslee & Urban 2007  
+Dissimilarity matrices for composition used the Bray-Curtis distance methoc, as recommended by Goslee & Urban.
+
+First, I test for spatial autocorrelation in composition data; since this is positive, I use partial Mantel tests to test relationships of composition and land use/enviro
+
+```{r Mantel1}
+# composition distance matrices
+FIAdist <- ecodist::distance(fia[,3:17], method= "bray-curtis") 
+PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
+
+# ----- spatial autocoreelation -----------
+spatialDist<- ecodist::distance(centroids[,2:3], method = "euclidean")
+
+PLS_space <- mantel(PLSdist ~ spatialDist, nperm=10000)
+FIA_space <- mantel(FIAdist ~ spatialDist, nperm=10000)
+# yes, data is spatially correlated
+
+# ----- total enviro and land use ------------
+luDist <- ecodist::distance(landuse2[,5:14], method = "euclidean")
+envirDist <- ecodist::distance(envar2[,5:11], method = "euclidean")
+
+# species vs environment, given effects of space
+PLS_env_space <- mantel(PLSdist ~ envirDist + spatialDist, nperm=10000)
+FIA_env_space <- mantel(FIAdist ~ envirDist + spatialDist, nperm=10000)
+
+mantel(FIAdist ~ spatialDist + envirDist, nperm=10000)
+mantel(PLSdist ~ spatialDist + envirDist, nperm=10000)
+
+PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist, nperm=10000)
+FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist, nperm=10000)
+```
+
+These results are quite different from previous results; one thing that changed is the projection of my centroids (used to be lat long, now are projected)
+
+
+
+
+
+
+
+
+
+
 
 
 
