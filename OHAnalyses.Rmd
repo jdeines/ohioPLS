@@ -22,7 +22,7 @@ This script relies on output from the following scripts
 #### Inputs:
 * OHcountyLandCover.csv
 * OH_EnviroVarCountySummary.csv
-* OH_county_centroids_projected.csv 
+* OH_county_centroids_latlong.csv 
 * OHCompCleanPLS_percent.csv
 * OHCompCleanFIA_percent.csv
 
@@ -62,7 +62,7 @@ pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
 fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
 envar <- read.csv("R output/OH_EnviroVarCountySummary.csv")
 landuse <- read.csv("R Output/OHCountyLandCover_aggregated_nmds.csv")
-centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
+centroids <- read.csv("R output/OH_county_centroids_latlong.csv") 
 
 # subset enviro and land use to 27 data counties, add coords
 envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", all.y = FALSE)
@@ -117,7 +117,7 @@ pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
 fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
 envar <- read.csv("R output/OH_EnviroVarCountySummary.csv")
 landuse <- read.csv("R Output/OHCountyLandCover_aggregated_nmds.csv")
-centroids <- read.csv("R output/OH_county_centroids_projected.csv") 
+centroids <- read.csv("R output/OH_county_centroids_latlong.csv") 
 
 # subset enviro and land use to 27 data counties, add coords
 envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", all.y = FALSE)
@@ -127,17 +127,6 @@ landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", all.y = FAL
 pls[,3:17]     <- asin(sqrt(pls[,3:17]))  	
 fia[,3:17]     <- asin(sqrt(fia[,3:17]))	
 landuse2[,5:14] <- asin(sqrt(landuse2[,5:14])) 
-
-
-# lat/long coords - note the indexing is wrong in OHAnalysesV3.r
-county.cent <- read.csv("C:/Users/deinesji/Dropbox/Dan_Williams/OhioRGIS-Old_code_data/R output/OHCountyPLScentroids.csv") 
-# extract county ID (ID), longitude (X.1), latitude (Y)
-latlong <- county.cent[,c(4,2,3)]
-
-
-
-# calculate distance between centroid locations
-
 ```
 
 ### Big Picture: Enviroment/climate vs Land Use
@@ -153,14 +142,9 @@ PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
 
 # ----- spatial autocoreelation -----------
 spatialDist<- ecodist::distance(centroids[,c('X','Y')], method = "euclidean")
-latlongDist <- ecodist::distance(latlong[,c('X','Y')], method = "euclidean")
 
-PLS_space <- mantel(PLSdist ~ spatialDist, nperm=1000)
-FIA_space <- mantel(FIAdist ~ spatialDist, nperm=1000)
-
-PLS_space <- mantel(PLSdist ~ latlongDist, nperm=1000)
-FIA_space <- mantel(FIAdist ~ latlongDist, nperm=1000)
-
+PLS_space <- mantel(PLSdist ~ spatialDist)
+FIA_space <- mantel(FIAdist ~ spatialDist)
 # yes, data is spatially correlated
 
 # ----- total enviro and land use ------------
@@ -168,23 +152,15 @@ luDist <- ecodist::distance(landuse2[,5:14], method = "euclidean")
 envirDist <- ecodist::distance(envar2[,5:11], method = "euclidean")
 
 # species vs environment, given effects of space
-PLS_env_space <- mantel(PLSdist ~ envirDist + spatialDist, nperm=1000)
-FIA_env_space <- mantel(FIAdist ~ envirDist + spatialDist, nperm=1000)
+PLS_env_space <- mantel(PLSdist ~ envirDist + spatialDist)
+FIA_env_space <- mantel(FIAdist ~ envirDist + spatialDist)
 
-PLS_env_space_ll <- mantel(PLSdist ~ envirDist + latlongDist, nperm=1000)
-FIA_env_space_ll <- mantel(FIAdist ~ envirDist + latlongDist, nperm=1000)
-
-PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist, nperm=1000)
-FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist, nperm=1000)
-
-PLS_lu_space_ll <- mantel(PLSdist ~ luDist + latlongDist, nperm=1000)
-FIA_lu_space_ll <- mantel(FIAdist ~ luDist + latlongDist, nperm=1000)
+PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist)
+FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist)
 ```
 
-These results are quite different from previous results; one thing that changed is the projection of my centroids (used to be lat long, now are projected)
-
-Using lat/long coordinates at 1000 permutations reproduces previous results, more or less
-
+### Finer Scale
+The Big Picture results indicate that variation in PLS and environmental dissimilarities matrices are significantly correlated. FIA and environment are not significantly correlated, but FIA is significantly correlated with modern land use. 
 
 
 
