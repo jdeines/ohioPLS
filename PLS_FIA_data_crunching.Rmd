@@ -30,6 +30,7 @@ Previous versions of this (ie, Ohio.PLS.FIA.landUseSummariesV6_2014.r) also summ
 * OHCompCleanFIA_percent.csv
 * Figure: PLS vs FIA pie charts
   * OH_county_centroids_projected.csv
+  * OH_county_centroids_latlong.csv
 * Figure: Change in species percentage (SpeciesChange)
 
 #### Next steps:
@@ -254,19 +255,22 @@ county.proj <- spTransform(county, CRS("+init=epsg:32123"))
 # Join data with county shapefile by the county ID number ("ID" in plscomp, "ID" in county)
 pls2 <- merge(county.proj, pls, by.x= "ID", by.y= "countyID", all.x=F)
 fia2 <- merge(county.proj, fia, by.x= "ID", by.y= "id", all.x=F)
+latlong <- merge(county, pls, by.x= "ID", by.y= "countyID", all.x=F)
 
 ## calculate polygon centroids for 27 data counties
 pls.polyset <- SpatialPolygons2PolySet(pls2)
+latlong.polyset <- SpatialPolygons2PolySet(latlong)
 centroids <- calcCentroid(pls.polyset, rollup=1)
-
+centroidsLatLong <- calcCentroid(latlong.polyset, rollup=1)
 
 
 # combine centroids with data
 pls3 <- cbind(centroids, pls2)
 fia3 <- cbind(centroids, fia2)
+ll   <- cbind(centroidsLatLong, latlong)
 
 #write.csv(pls3[,c('ID','X','Y')], "R output/OH_county_centroids_projected.csv", row.names=F)
-
+#write.csv(ll[,c('ID','X','Y')], "R output/OH_county_centroids_latlong.csv", row.names=F)
 
 # extract only necessary columns
 speciesList <- names(pls3[17:31])
