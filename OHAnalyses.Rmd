@@ -29,10 +29,10 @@ This script relies on output from the following scripts
 #### Crunching:
 * Aggregate land use classes
 * Basic correlation matrices between county composition (FIA/PLS) and 1) environmental variables and 2) land use
-* 
+* Mantel tests: aggregated environmental and land use dissimilarity matrices
 
 #### Outputs:
-* OHCountyLandCover_aggregated.csv
+* 
 * 
 
 Working directory and packages
@@ -159,10 +159,70 @@ PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist)
 FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist)
 ```
 
-### Finer Scale
 The Big Picture results indicate that variation in PLS and environmental dissimilarities matrices are significantly correlated. FIA and environment are not significantly correlated, but FIA is significantly correlated with modern land use. 
 
+### Individual Environmental Variables
+For both PLS and FIA data
 
+```{r Mantel_enviro}
+# distance matrices for individual environmental variables examined
+soilphDist  <- ecodist::distance(envar2[,'soilph'], method = "euclidean")
+slopeDist   <- ecodist::distance(envar2[,'slope'], method = "euclidean")
+soilh20Dist <- ecodist::distance(envar2[,'soilh2o'], method = "euclidean")
+tempannDist <- ecodist::distance(envar2[,'tempann'], method = "euclidean") 
+pptannDist  <- ecodist::distance(envar2[,'pptann'], method = "euclidean")
+tminjanDist <- ecodist::distance(envar2[,'tminjan'], method = "euclidean")
+tmaxjulDist <- ecodist::distance(envar2[,'tmaxjul'], method = "euclidean")
+
+# PLS tests
+#soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist 
+
+PLSsoil    <- mantel(PLSdist ~ soilphDist + spatialDist)
+PLSslope   <- mantel(PLSdist ~ slopeDist + spatialDist)
+PLSsoilH2O <- mantel(PLSdist ~ soilh20Dist + spatialDist)
+PLStempann <- mantel(PLSdist ~ tempannDist + spatialDist)
+PLSpptann  <- mantel(PLSdist ~ pptannDist + spatialDist)
+PLStminjan <- mantel(PLSdist ~ tminjanDist + spatialDist)
+PLStmaxjul <- mantel(PLSdist ~ tmaxjulDist + spatialDist)
+
+# FIA tests
+FIAsoil2    <- mantel(FIAdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist)
+FIAslope   <- mantel(FIAdist ~ slopeDist + spatialDist)
+FIAsoilH2O <- mantel(FIAdist ~ soilh20Dist + spatialDist)
+FIAtempann <- mantel(FIAdist ~ tempannDist + spatialDist)
+FIApptann  <- mantel(FIAdist ~ pptannDist + spatialDist)
+FIAtminjan <- mantel(FIAdist ~ tminjanDist + spatialDist)
+FIAtmaxjul <- mantel(FIAdist ~ tmaxjulDist + spatialDist)
+```
+
+### Individual Land Use Variables
+For FIA data
+
+```{r Mantel_lu}
+# distance matrices for individual land use variables
+Openh2odist <- distance(landuse2[,'openWater'], method = "euclidean")
+DevOpendist <- distance(landuse2[,'developedOpen'], method = "euclidean")
+Devdist     <- distance(landuse2[,'developed'], method = "euclidean")
+Barrendist  <- distance(landuse2[,'barren'], method = "euclidean")
+Forestdist  <- distance(landuse2[,'forest'], method = "euclidean")
+Shrubdist   <- distance(landuse2[,'shrub'], method = "euclidean")
+Grassdist   <- distance(landuse2[,'grassland'], method = "euclidean")
+Pasturedist <- distance(landuse2[,'pasture'], method = "euclidean")
+Cropsdist   <- distance(landuse2[,'crops'], method = "euclidean")
+Wetlanddist <- distance(landuse2[,'wetlands'], method = "euclidean")
+
+#partial mantel test with FIA data: land use
+FIAopenH2O <- mantel(FIAdist ~ Openh2odist + spatialDist)
+FIAdevOpen <- mantel(FIAdist ~ DevOpendist + spatialDist)
+FIAdev     <- mantel(FIAdist ~ Devdist + spatialDist)
+FIAbarren  <- mantel(FIAdist ~ Barrendist + spatialDist)
+FIAforest  <- mantel(FIAdist ~ Forestdist + spatialDist)
+FIAshrub   <- mantel(FIAdist ~ Shrubdist + spatialDist)
+FIAgrass   <- mantel(FIAdist ~ Grassdist + spatialDist)
+FIApasture <- mantel(FIAdist ~ Pasturedist + spatialDist)
+FIAcrops   <- mantel(FIAdist ~ Cropsdist + spatialDist)
+FIAwetland <- mantel(FIAdist ~ Wetlanddist + spatialDist)
+```
 
 
 
