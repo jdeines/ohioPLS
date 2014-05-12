@@ -76,8 +76,8 @@ landuse2[,5:14] <- asin(sqrt(landuse2[,5:14]))
 # correlations: composition vs enviro, landuse 
 plsEnvCor <-cor(envar2[,5:11], pls[,3:17])	
 fiaEnvCor <-cor(envar2[,5:11], fia[,3:17])	
-#cor(OHenvar3[,3:9], OHenvar3[,11:20])	# environ variables vs land use	
-plsLandCor <- cor(landuse2[,5:14], pls[,3:17])	
+
+#plsLandCor <- cor(landuse2[,5:14], pls[,3:17])	
 fiaLandCor <- cor(landuse2[,5:14], fia[,3:17])	
 ```
 
@@ -91,12 +91,11 @@ corrplot(plsEnvCor, method="color", addCoef.col="black", title="PLS-Enviroment",
 corrplot(fiaEnvCor, method="color", addCoef.col="black", title="FIA-Environment", tl.col="black", 
   col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
 
-#pls/land use
-corrplot(plsLandCor, method="color", addCoef.col="black", title="PLS-Land Use", tl.col="black", 
-  col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+# #pls/land use
+# corrplot(plsLandCor, method="color", addCoef.col="black", title="PLS-Land Use", tl.col="black", 
+#   col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
 #fia/land use
-corrplot(fiaLandCor, method="color", addCoef.col="black", title="FIA-Land Use", tl.col="black", 
-	col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+corrplot(fiaLandCor, method="color", addCoef.col="black", title="FIA-Land Use", tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
 ```
 
 
@@ -162,7 +161,10 @@ FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist)
 The Big Picture results indicate that variation in PLS and environmental dissimilarities matrices are significantly correlated. FIA and environment are not significantly correlated, but FIA is significantly correlated with modern land use. 
 
 ### Individual Environmental Variables
-For both PLS and FIA data
+For both PLS and FIA data. For Dan's project, we ran the partial Mantel test with only space as the additional variables; the Git commit of this script on May 12, 2014 replicates Dan's results (except Dan's report does not show significance in FIA soil water and annual ppt, which mine do - we get the same mantel r, so I think Dan failed to label the significant tests for FIA/environment), which are also reported in his final paper.
+
+Here, I fully cross the partial Mantels, adding all other variables tested in addition to space. This changes the results as follows: 1) previously non-significant variables have much lower mantel r's and remain insignificant; and 2) previously significant variables are still significant (annptt p value lowered...), and their mantel r's are similar but a bit lower. For FIA data, however, these changes had a larger effect: Annual precip became insignificant, and minimum temperature became significant. Weird.
+
 
 ```{r Mantel_enviro}
 # distance matrices for individual environmental variables examined
@@ -175,28 +177,27 @@ tminjanDist <- ecodist::distance(envar2[,'tminjan'], method = "euclidean")
 tmaxjulDist <- ecodist::distance(envar2[,'tmaxjul'], method = "euclidean")
 
 # PLS tests
-#soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist 
-
-PLSsoil    <- mantel(PLSdist ~ soilphDist + spatialDist)
-PLSslope   <- mantel(PLSdist ~ slopeDist + spatialDist)
-PLSsoilH2O <- mantel(PLSdist ~ soilh20Dist + spatialDist)
-PLStempann <- mantel(PLSdist ~ tempannDist + spatialDist)
-PLSpptann  <- mantel(PLSdist ~ pptannDist + spatialDist)
-PLStminjan <- mantel(PLSdist ~ tminjanDist + spatialDist)
-PLStmaxjul <- mantel(PLSdist ~ tmaxjulDist + spatialDist)
+PLSsoil    <- mantel(PLSdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist )
+PLSslope   <- mantel(PLSdist ~ slopeDist + spatialDist + soilphDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
+PLSsoilH2O <- mantel(PLSdist ~ soilh20Dist + spatialDist + soilphDist + slopeDist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
+PLStempann <- mantel(PLSdist ~ tempannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + pptannDist + tminjanDist + tmaxjulDist)
+PLSpptann  <- mantel(PLSdist ~ pptannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + tminjanDist + tmaxjulDist )
+PLStminjan <- mantel(PLSdist ~ tminjanDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tmaxjulDist)
+PLStmaxjul <- mantel(PLSdist ~ tmaxjulDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist)
 
 # FIA tests
-FIAsoil2    <- mantel(FIAdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist)
-FIAslope   <- mantel(FIAdist ~ slopeDist + spatialDist)
-FIAsoilH2O <- mantel(FIAdist ~ soilh20Dist + spatialDist)
-FIAtempann <- mantel(FIAdist ~ tempannDist + spatialDist)
-FIApptann  <- mantel(FIAdist ~ pptannDist + spatialDist)
-FIAtminjan <- mantel(FIAdist ~ tminjanDist + spatialDist)
-FIAtmaxjul <- mantel(FIAdist ~ tmaxjulDist + spatialDist)
+FIAsoil    <- mantel(FIAdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist )
+FIAslope   <- mantel(FIAdist ~ slopeDist + spatialDist + soilphDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
+FIAsoilH2O <- mantel(FIAdist ~ soilh20Dist + spatialDist + soilphDist + slopeDist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
+FIAtempann <- mantel(FIAdist ~ tempannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + pptannDist + tminjanDist + tmaxjulDist)
+FIApptann  <- mantel(FIAdist ~ pptannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + tminjanDist + tmaxjulDist)
+FIAtminjan <- mantel(FIAdist ~ tminjanDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tmaxjulDist)
+FIAtmaxjul <- mantel(FIAdist ~ tmaxjulDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist)
 ```
 
 ### Individual Land Use Variables
-For FIA data
+For FIA data; fully adding variables to partial Mantel test resulted in forest land use no longer being significant.
+
 
 ```{r Mantel_lu}
 # distance matrices for individual land use variables
@@ -212,18 +213,24 @@ Cropsdist   <- distance(landuse2[,'crops'], method = "euclidean")
 Wetlanddist <- distance(landuse2[,'wetlands'], method = "euclidean")
 
 #partial mantel test with FIA data: land use
-FIAopenH2O <- mantel(FIAdist ~ Openh2odist + spatialDist)
-FIAdevOpen <- mantel(FIAdist ~ DevOpendist + spatialDist)
-FIAdev     <- mantel(FIAdist ~ Devdist + spatialDist)
-FIAbarren  <- mantel(FIAdist ~ Barrendist + spatialDist)
-FIAforest  <- mantel(FIAdist ~ Forestdist + spatialDist)
-FIAshrub   <- mantel(FIAdist ~ Shrubdist + spatialDist)
-FIAgrass   <- mantel(FIAdist ~ Grassdist + spatialDist)
-FIApasture <- mantel(FIAdist ~ Pasturedist + spatialDist)
-FIAcrops   <- mantel(FIAdist ~ Cropsdist + spatialDist)
-FIAwetland <- mantel(FIAdist ~ Wetlanddist + spatialDist)
+Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist
+
+FIAopenH2O <- mantel(FIAdist ~ Openh2odist + spatialDist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
+FIAdevOpen <- mantel(FIAdist ~ DevOpendist + spatialDist + Openh2odist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
+FIAdev     <- mantel(FIAdist ~ Devdist + spatialDist + Openh2odist + DevOpendist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
+FIAbarren  <- mantel(FIAdist ~ Barrendist + spatialDist + Openh2odist + DevOpendist + Devdist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
+FIAforest  <- mantel(FIAdist ~ Forestdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
+FIAshrub   <- mantel(FIAdist ~ Shrubdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
+FIAgrass   <- mantel(FIAdist ~ Grassdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Pasturedist + Cropsdist + Wetlanddist)
+FIApasture <- mantel(FIAdist ~ Pasturedist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Cropsdist + Wetlanddist)
+FIAcrops   <- mantel(FIAdist ~ Cropsdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Wetlanddist)
+FIAwetland <- mantel(FIAdist ~ Wetlanddist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist)
 ```
 
+### Generate Mantel Tests Output
+```{r mantel_out}
+
+```
 
 
 
