@@ -32,8 +32,9 @@ This script relies on output from the following scripts
 * Mantel tests: aggregated environmental and land use dissimilarity matrices
 
 #### Outputs:
-* 
-* 
+* MantelResults.csv
+* Correlation plots
+* NMDS of composition for each time period (plots)
 
 Working directory and packages
 ------------------------------
@@ -83,33 +84,28 @@ fiaLandCor <- cor(landuse2[,5:14], fia[,3:17])
 
 ### Correlation Plots
 Needed: Nicer axis labels, significance indication?
-```{r CorrPlots, echo=FALSE}
+```{r CorrPlots, fig.width=9,fig.height=5}
 #pls/environmental variables
-corrplot(plsEnvCor, method="color", addCoef.col="black", title="PLS-Enviroment", tl.col="black", 
+corrplot(plsEnvCor, method="color", addCoef.col="black", tl.col="black", 
   col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
 #fia/enviro
-corrplot(fiaEnvCor, method="color", addCoef.col="black", title="FIA-Environment", tl.col="black", 
+corrplot(fiaEnvCor, method="color", addCoef.col="black", tl.col="black", 
   col=colorRampPalette(c("darkmagenta", "white", "darkgreen"))(200))
 
 # #pls/land use
 # corrplot(plsLandCor, method="color", addCoef.col="black", title="PLS-Land Use", tl.col="black", 
 #   col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
 #fia/land use
-corrplot(fiaLandCor, method="color", addCoef.col="black", title="FIA-Land Use", tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
+corrplot(fiaLandCor, method="color", addCoef.col="black", tl.col="black", col=colorRampPalette(c("darkmagenta", "white", "darkorange2"))(200))
 ```
 
 
 Mantel Tests
 ---------------------------
 
-Other thoughts for Alex's notes: 
-* This is areal/zonal data (vs points or continuous)
-* Proximity: currently use county centroids in some fashion...but whaat about common boundary?
-
- Mantel tests? 1000 permutations seems standard??
 ### Load Data and Get Distance Matrices
 
-```{r Mantels_loadData}
+```{r Mantels_loadData, eval=FALSE}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
@@ -134,7 +130,7 @@ Dissimilarity matrices for composition used the Bray-Curtis distance methoc, as 
 
 First, I test for spatial autocorrelation in composition data; since this is positive, I use partial Mantel tests to test relationships of composition and land use/enviro
 
-```{r Mantel1}
+```{r Mantel1, eval=FALSE}
 # composition distance matrices
 FIAdist <- ecodist::distance(fia[,3:17], method= "bray-curtis") 
 PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
@@ -142,31 +138,46 @@ PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
 # ----- spatial autocoreelation -----------
 spatialDist<- ecodist::distance(centroids[,c('X','Y')], method = "euclidean")
 
-PLS_space <- mantel(PLSdist ~ spatialDist)
-FIA_space <- mantel(FIAdist ~ spatialDist)
+# output dataframe
+MantelResults <- data.frame(variable = rep('tbd',30), dataset = NA, mantelr = NA, pval = NA)
+MantelResults$variable <- as.character(MantelResults$variable)
+
+# composition and space
+MantelResults$variable[1:2] <- 'spatialAuto'
+MantelResults$dataset[1:2] <- c('PLS','FIA')
+MantelResults[1,3:4] <- mantel(PLSdist ~ spatialDist)[c('mantelr','pval1')]
+MantelResults[2,3:4] <- mantel(FIAdist ~ spatialDist)[c('mantelr','pval1')]
 # yes, data is spatially correlated
 
 # ----- total enviro and land use ------------
 luDist <- ecodist::distance(landuse2[,5:14], method = "euclidean")
 envirDist <- ecodist::distance(envar2[,5:11], method = "euclidean")
 
-# species vs environment, given effects of space
-PLS_env_space <- mantel(PLSdist ~ envirDist + spatialDist)
-FIA_env_space <- mantel(FIAdist ~ envirDist + spatialDist)
+# composition vs environment, given effects of space
+MantelResults$variable[3:4] <- 'env_space'
+MantelResults$dataset[3:4] <- c('PLS','FIA')
+MantelResults[3,3:4] <- mantel(PLSdist ~ envirDist + spatialDist)[c('mantelr','pval1')]
+MantelResults[4,3:4] <- mantel(FIAdist ~ envirDist + spatialDist)[c('mantelr','pval1')]
 
-PLS_lu_space <- mantel(PLSdist ~ luDist + spatialDist)
-FIA_lu_space <- mantel(FIAdist ~ luDist + spatialDist)
+# land use given effects of space
+MantelResults$variable[5:6] <- 'lu_space'
+MantelResults$dataset[5:6] <- c('PLS','FIA')
+MantelResults[5,3:4] <- mantel(PLSdist ~ luDist + spatialDist)[c('mantelr','pval1')]
+MantelResults[6,3:4] <- mantel(FIAdist ~ luDist + spatialDist)[c('mantelr','pval1')]
+
+# display results
+head(MantelResults)
 ```
 
 The Big Picture results indicate that variation in PLS and environmental dissimilarities matrices are significantly correlated. FIA and environment are not significantly correlated, but FIA is significantly correlated with modern land use. 
 
 ### Individual Environmental Variables
-For both PLS and FIA data. For Dan's project, we ran the partial Mantel test with only space as the additional variables; the Git commit of this script on May 12, 2014 replicates Dan's results (except Dan's report does not show significance in FIA soil water and annual ppt, which mine do - we get the same mantel r, so I think Dan failed to label the significant tests for FIA/environment), which are also reported in his final paper.
+For both PLS and FIA data (but perhaps FIA data is inappropriate since the group test, FIA ~ enviro, was insignificant). For Dan's project, we ran the partial Mantel test with only space as the additional variables; the Git commit of this script on May 12, 2014 replicates Dan's results (except Dan's report does not show significance in FIA soil water and annual ppt, which mine do - we get the same mantel r, so I think Dan forgot to label the significant tests for FIA/environment), which are also reported in his final paper.
 
-Here, I fully cross the partial Mantels, adding all other variables tested in addition to space. This changes the results as follows: 1) previously non-significant variables have much lower mantel r's and remain insignificant; and 2) previously significant variables are still significant (annptt p value lowered...), and their mantel r's are similar but a bit lower. For FIA data, however, these changes had a larger effect: Annual precip became insignificant, and minimum temperature became significant. Weird.
+Here, I fully cross the partial Mantels, adding all other variables tested in addition to space. This generally changes the results as follows: 1) previously non-significant variables have much lower mantel r's and remain insignificant; and 2) previously significant variables are still significant (annppt p value lowered...), and their mantel r's are similar but a bit lower. **For FIA data, however, these changes had a larger effect: Annual precip became insignificant, and minimum temperature became significant. Weird.**
 
 
-```{r Mantel_enviro}
+```{r Mantel_enviro, eval=FALSE}
 # distance matrices for individual environmental variables examined
 soilphDist  <- ecodist::distance(envar2[,'soilph'], method = "euclidean")
 slopeDist   <- ecodist::distance(envar2[,'slope'], method = "euclidean")
@@ -176,117 +187,126 @@ pptannDist  <- ecodist::distance(envar2[,'pptann'], method = "euclidean")
 tminjanDist <- ecodist::distance(envar2[,'tminjan'], method = "euclidean")
 tmaxjulDist <- ecodist::distance(envar2[,'tmaxjul'], method = "euclidean")
 
+# add variables to output df
+MantelResults$variable[7:20] <- rep(c('soilph','slope','soilh2o','tempann','pptann','tminjan','tmaxjul'),2)
+
 # PLS tests
-PLSsoil    <- mantel(PLSdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist )
-PLSslope   <- mantel(PLSdist ~ slopeDist + spatialDist + soilphDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
-PLSsoilH2O <- mantel(PLSdist ~ soilh20Dist + spatialDist + soilphDist + slopeDist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
-PLStempann <- mantel(PLSdist ~ tempannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + pptannDist + tminjanDist + tmaxjulDist)
-PLSpptann  <- mantel(PLSdist ~ pptannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + tminjanDist + tmaxjulDist )
-PLStminjan <- mantel(PLSdist ~ tminjanDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tmaxjulDist)
-PLStmaxjul <- mantel(PLSdist ~ tmaxjulDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist)
+MantelResults$dataset[7:13] <- 'PLS'
+
+MantelResults[7,3:4] <- mantel(PLSdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[8,3:4] <- mantel(PLSdist ~ slopeDist + spatialDist + soilphDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[9,3:4] <- mantel(PLSdist ~ soilh20Dist + spatialDist + soilphDist + slopeDist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[10,3:4] <- mantel(PLSdist ~ tempannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[11,3:4] <- mantel(PLSdist ~ pptannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + tminjanDist + tmaxjulDist )[c('mantelr','pval1')]
+MantelResults[12,3:4] <- mantel(PLSdist ~ tminjanDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[13,3:4] <- mantel(PLSdist ~ tmaxjulDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist)[c('mantelr','pval1')]
 
 # FIA tests
-FIAsoil    <- mantel(FIAdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist )
-FIAslope   <- mantel(FIAdist ~ slopeDist + spatialDist + soilphDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
-FIAsoilH2O <- mantel(FIAdist ~ soilh20Dist + spatialDist + soilphDist + slopeDist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)
-FIAtempann <- mantel(FIAdist ~ tempannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + pptannDist + tminjanDist + tmaxjulDist)
-FIApptann  <- mantel(FIAdist ~ pptannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + tminjanDist + tmaxjulDist)
-FIAtminjan <- mantel(FIAdist ~ tminjanDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tmaxjulDist)
-FIAtmaxjul <- mantel(FIAdist ~ tmaxjulDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist)
+MantelResults$dataset[14:20] <- 'FIA'
+
+MantelResults[14,3:4] <- mantel(FIAdist ~ soilphDist + spatialDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[15,3:4] <- mantel(FIAdist ~ slopeDist + spatialDist + soilphDist + soilh20Dist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[16,3:4] <- mantel(FIAdist ~ soilh20Dist + spatialDist + soilphDist + slopeDist + tempannDist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[17,3:4] <- mantel(FIAdist ~ tempannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + pptannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[18,3:4] <- mantel(FIAdist ~ pptannDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + tminjanDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[19,3:4] <- mantel(FIAdist ~ tminjanDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tmaxjulDist)[c('mantelr','pval1')]
+MantelResults[20,3:4] <- mantel(FIAdist ~ tmaxjulDist + spatialDist + soilphDist + slopeDist + soilh20Dist + tempannDist + pptannDist + tminjanDist)[c('mantelr','pval1')]
+
+# display results
+MantelResults[7:20,]
 ```
 
 ### Individual Land Use Variables
 For FIA data; fully adding variables to partial Mantel test resulted in forest land use no longer being significant.
 
 
-```{r Mantel_lu}
+```{r Mantel_lu, eval=FALSE}
 # distance matrices for individual land use variables
-Openh2odist <- distance(landuse2[,'openWater'], method = "euclidean")
-DevOpendist <- distance(landuse2[,'developedOpen'], method = "euclidean")
-Devdist     <- distance(landuse2[,'developed'], method = "euclidean")
-Barrendist  <- distance(landuse2[,'barren'], method = "euclidean")
-Forestdist  <- distance(landuse2[,'forest'], method = "euclidean")
-Shrubdist   <- distance(landuse2[,'shrub'], method = "euclidean")
-Grassdist   <- distance(landuse2[,'grassland'], method = "euclidean")
-Pasturedist <- distance(landuse2[,'pasture'], method = "euclidean")
-Cropsdist   <- distance(landuse2[,'crops'], method = "euclidean")
-Wetlanddist <- distance(landuse2[,'wetlands'], method = "euclidean")
+Openh2odist <- ecodist::distance(landuse2[,'openWater'], method = "euclidean")
+DevOpendist <- ecodist::distance(landuse2[,'developedOpen'], method = "euclidean")
+Devdist     <- ecodist::distance(landuse2[,'developed'], method = "euclidean")
+Barrendist  <- ecodist::distance(landuse2[,'barren'], method = "euclidean")
+Forestdist  <- ecodist::distance(landuse2[,'forest'], method = "euclidean")
+Shrubdist   <- ecodist::distance(landuse2[,'shrub'], method = "euclidean")
+Grassdist   <- ecodist::distance(landuse2[,'grassland'], method = "euclidean")
+Pasturedist <- ecodist::distance(landuse2[,'pasture'], method = "euclidean")
+Cropsdist   <- ecodist::distance(landuse2[,'crops'], method = "euclidean")
+Wetlanddist <- ecodist::distance(landuse2[,'wetlands'], method = "euclidean")
+
+# add variables to output df
+MantelResults$variable[21:30] <- c('water','open developed','developed','barren','forest','shrubland','grassland','pasture','crops','wetlands')
 
 #partial mantel test with FIA data: land use
-Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist
+MantelResults$dataset[21:30] <- 'FIA'
 
-FIAopenH2O <- mantel(FIAdist ~ Openh2odist + spatialDist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
-FIAdevOpen <- mantel(FIAdist ~ DevOpendist + spatialDist + Openh2odist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
-FIAdev     <- mantel(FIAdist ~ Devdist + spatialDist + Openh2odist + DevOpendist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
-FIAbarren  <- mantel(FIAdist ~ Barrendist + spatialDist + Openh2odist + DevOpendist + Devdist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
-FIAforest  <- mantel(FIAdist ~ Forestdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
-FIAshrub   <- mantel(FIAdist ~ Shrubdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)
-FIAgrass   <- mantel(FIAdist ~ Grassdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Pasturedist + Cropsdist + Wetlanddist)
-FIApasture <- mantel(FIAdist ~ Pasturedist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Cropsdist + Wetlanddist)
-FIAcrops   <- mantel(FIAdist ~ Cropsdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Wetlanddist)
-FIAwetland <- mantel(FIAdist ~ Wetlanddist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist)
+MantelResults[21,3:4] <- mantel(FIAdist ~ Openh2odist + spatialDist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[22,3:4] <- mantel(FIAdist ~ DevOpendist + spatialDist + Openh2odist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[23,3:4] <- mantel(FIAdist ~ Devdist + spatialDist + Openh2odist + DevOpendist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[24,3:4] <- mantel(FIAdist ~ Barrendist + spatialDist + Openh2odist + DevOpendist + Devdist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[25,3:4] <- mantel(FIAdist ~ Forestdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Shrubdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[26,3:4] <- mantel(FIAdist ~ Shrubdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Grassdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[27,3:4] <- mantel(FIAdist ~ Grassdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Pasturedist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[28,3:4] <- mantel(FIAdist ~ Pasturedist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Cropsdist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[29,3:4] <- mantel(FIAdist ~ Cropsdist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Wetlanddist)[c('mantelr','pval1')]
+MantelResults[30,3:4] <- mantel(FIAdist ~ Wetlanddist + spatialDist + Openh2odist + DevOpendist + Devdist + Barrendist + Forestdist + Shrubdist + Grassdist + Pasturedist + Cropsdist)[c('mantelr','pval1')]
+
+# display
+MantelResults[21:30,]
+
+# write results
+write.csv(MantelResults,"R Output/MantelResults.csv",row.names=F)
 ```
 
-### Generate Mantel Tests Output
-```{r mantel_out}
+### Visualize Mantel Results in Markdown Output
+```{r MantelOutput}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+MantelResults <- read.csv("R Output/MantelResults.csv")
 
+# group tests
+head(MantelResults)
+
+# enviro variables
+MantelResults[7:20,]
+
+# land use variables
+MantelResults[21:30,]
 ```
-
-
-
-
-
-
-
-
-
 
 
 Composition NMDS
 ----------------------------
-Code raw from previous version - not yet updated
 
-```{r}
-## NMDS for PLS Data##
+
+```{r NMDS, fig.width=9, fig.height=5}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
+fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
+
+# arcsine squareroot transform proportional data (land use, pls, fia)
+pls[,3:17] <- asin(sqrt(pls[,3:17]))    
+fia[,3:17] <- asin(sqrt(fia[,3:17]))	
+
+# composition distance matrices
+FIAdist <- ecodist::distance(fia[,3:17], method= "bray-curtis") 
+PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
 
 #run NMDS
-PLS.NMDS<-nmds(PLS.dist, maxdim=2)
+PLSnmds <-nmds(PLSdist, maxdim=2)
+FIAnmds <-nmds(FIAdist, maxdim=2)
 
-#view results for each iteration
-PLS.NMDS$stress #1-r^2
-PLS.NMDS$r2 #percent variation each configuration explains
-
-# get the NMDS scores for each county for the configuration which had the minimum
-#stress values, aka captures the most variance in the data, or has the
-# maximum r2 value
-
-PLS.nmds.min<- nmds.min(PLS.NMDS)
+# get the NMDS scores for each county for the configuration which had the minimum stress values
+PLS.nmds.min <- nmds.min(PLSnmds)
+FIA.nmds.min <- nmds.min(FIAnmds)
 
 #Plot NMDS min stress result
-plot(PLS.nmds.min)
-
+par(mfrow=c(1,2))
+plot(PLS.nmds.min, main='PLS')
 #Fit vectors for the main variables to the NMDS configuration
-PLS.nmds.vf<- vf(PLS.nmds.min, pls[,4:18], nperm=10) #why 10?
+PLS.nmds.vf<- vf(PLS.nmds.min, pls[,3:17])
 plot(PLS.nmds.vf, col="blue")
 
-## NMDS for FIA Data ##
-
-#run NMDS
-FIA.NMDS<-nmds(FIA.dist, maxdim=2)
-
-#view results for each iteration
-FIA.NMDS$stress #1-r^2
-FIA.NMDS$r2 #percent variation each configuration explains
-
-# get the NMDS scores for each county for the configuration which had the minimum
-#stress values, aka captures the most variance in the data, or has the
-# maximum r2 value
-
-FIA.nmds.min<- nmds.min(FIA.NMDS)
-
-#Plot NMDS min stress result
-plot(FIA.nmds.min)
-
+plot(FIA.nmds.min, main='FIA')
 #Fit vectors for the main variables to the NMDS configuration
 FIA.nmds.vf<- vf(PLS.nmds.min, pls[,4:18], nperm=10) #why 10?
 plot(FIA.nmds.vf, col="blue")
