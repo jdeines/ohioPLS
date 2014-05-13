@@ -276,7 +276,6 @@ MantelResults[21:30,]
 Composition NMDS
 ----------------------------
 
-
 ```{r NMDS, fig.width=9, fig.height=5}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
@@ -297,18 +296,43 @@ FIAnmds <-nmds(FIAdist, maxdim=2)
 
 # get the NMDS scores for each county for the configuration which had the minimum stress values
 PLS.nmds.min <- nmds.min(PLSnmds)
+colnames(PLS.nmds.min) <- c('NMDS 1','NMDS 2')
 FIA.nmds.min <- nmds.min(FIAnmds)
+colnames(FIA.nmds.min) <- c('NMDS 1','NMDS 2')
 
-#Plot NMDS min stress result
-par(mfrow=c(1,2))
-plot(PLS.nmds.min, main='PLS')
-#Fit vectors for the main variables to the NMDS configuration
+# calculate species vectors
 PLS.nmds.vf<- vf(PLS.nmds.min, pls[,3:17])
-plot(PLS.nmds.vf, col="blue")
+FIA.nmds.vf<- vf(FIA.nmds.min, fia[,3:17]) 
 
-plot(FIA.nmds.min, main='FIA')
-#Fit vectors for the main variables to the NMDS configuration
-FIA.nmds.vf<- vf(PLS.nmds.min, pls[,4:18], nperm=10) #why 10?
-plot(FIA.nmds.vf, col="blue")
+# assign county groups (1 = nw, 2 = se)
+pls$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
+pls$color <- apply(as.array(pls$region),1,function (x) {
+  if (x == 1) out <- 'darkorange2'
+  else out <- 'darkmagenta'
+  return(out) })
+
+# Plot NMDS min stress result - base plot
+par(mfrow=c(1,2))
+
+par(mar=c(5,4,2,1))
+plot(PLS.nmds.min, main='Settlement-Era', col=pls$color, pch=16)
+plot(PLS.nmds.vf)
+legend('bottomleft', legend=paste0('r^2 = ',round(max(PLSnmds$r2),2)), bty='n')  
+
+par(mar=c(5,4,2,1))
+plot(FIA.nmds.min, main='Modern', col=pls$color, pch=16)
+plot(FIA.nmds.vf)
+legend('bottomright', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n') 
+
+# empty plot over full device
+par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
+plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
+# add legend (for example)
+legend("bottom", legend=c('southeast counties','northwest counties'), fill = c('darkmagenta','darkorange2'), bty='n')
+
+# ggplot
+#library(ggplot2)
+
+
 ```
 
