@@ -30,6 +30,8 @@ This script relies on output from the following scripts
 * Aggregate land use classes
 * Basic correlation matrices between county composition (FIA/PLS) and 1) environmental variables and 2) land use
 * Mantel tests: aggregated environmental and land use dissimilarity matrices
+* NMDS on county composition
+* Composition statistics by county/time period
 
 #### Outputs:
 * MantelResults.csv
@@ -275,6 +277,7 @@ MantelResults[21:30,]
 
 Composition NMDS
 ----------------------------
+We ran an ordination using non-metric multidimensional scaling to assess how composition differed by county in the two time periods.
 
 ```{r NMDS, fig.width=9, fig.height=5}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
@@ -332,7 +335,62 @@ legend("bottom", legend=c('southeast counties','northwest counties'), fill = c('
 
 # ggplot
 #library(ggplot2)
+```
 
+County Composition Stats
+-----------------------------
+Quantitative descriptions of composition and changes
+
+```{r compStats}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
+fia <- read.csv("R Output/OHCompCleanFIA_percent.csv")
+
+# assign county groups (1 = nw, 2 = se)
+pls$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
+pls$regionName <- apply(as.array(pls$region),1,function (x) {
+  if (x == 1) out <- 'Northwest'
+  else out <- 'Southeast'
+  return(out) })
+
+fia$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
+fia$regionName <- apply(as.array(fia$region),1,function (x) {
+  if (x == 1) out <- 'Northwest'
+  else out <- 'Southeast'
+  return(out) })
+
+# split counties by region for summary stats
+northwestPLS <- pls[pls$regionName == 'Northwest',]
+southeastPLS <- pls[pls$regionName == 'Southeast',]
+
+northwestFIA <- fia[fia$regionName == 'Northwest',]
+southeastFIA <- fia[fia$regionName == 'Southeast',]
+
+# mean and stdev for each region
+nwPLS <- rbind(mean = colMeans(northwestPLS[,3:17]), sd = apply(northwestPLS[,3:17], 2, sd))
+nwFIA <- rbind(mean = colMeans(northwestFIA[,3:17]), sd = apply(northwestFIA[,3:17], 2, sd))
+
+sePLS <- rbind(mean = colMeans(southeastPLS[,3:17]), sd = apply(southeastPLS[,3:17], 2, sd))
+seFIA <- rbind(mean = colMeans(southeastFIA[,3:17]), sd = apply(southeastFIA[,3:17], 2, sd))
+
+# stats
+nwPLS 
+northwestPLS[,c('countyName','beech','oak','ash','elm','maple','hickory')]
+
+nwFIA
+northwestFIA[,c('County','beech','oak','ash','elm','maple','hickory')]
+
+# change in proportion 
+nwFIA['mean',] - nwPLS['mean',]
+
+
+sePLS
+
+seFIA
+
+# change in proportion 
+seFIA['mean',] - sePLS['mean',]
 
 ```
 
