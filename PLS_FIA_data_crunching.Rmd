@@ -187,6 +187,8 @@ Data Cleaning and Aggregation: FIA
 -----------------------------------------
 Dan Williams downloaded data from FIA. He specified all species/individuals among a certain size class (> 9 in diameter, I believe) to match PLS methodology. Dan converted raw tree counts into percentage data in Excel. PDF's of downloaded county data are in the folder "FIA Tree Count PDFs", and I am guessing intermediate processing steps are in the folder 'FIA Ohio Summarized Data'. Both of these files are located in the 'FIAdataFromDan' folder in the working directory (CleanCodeAndData).
 
+May 14, 2014 - Revised so 'other' count does not include dead trees ('unknown dead hardwood' and 'unknown dead conifer')
+
 ```{r cleanFIA}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
@@ -220,14 +222,14 @@ FIA.spec2 <-cbind(FIA.spec1[,c("id","County")],
 	"tulip"=FIA.spec1$yellow.poplar,
 	"walnut"=rowSums(FIA.spec1[,c("black.walnut","butternut")]),
 	"other"=rowSums(FIA.spec1[,c("chestnut","eastern.red.cedar","norway.spruce","blue.spruce",
-                  "eastern.hemlock","unknown.dead.conifer","ohio.buckeye","yellow.buckeye",
+                  "eastern.hemlock","ohio.buckeye","yellow.buckeye",
                   "ailanthus","european.alder","yellow.birch","sweet.birch","river.birch",
                   "northern.catalpa","eastern.redbud","hawthorn","common.persimmon",
                   "kentucky.coffeetree","sweetgum","osage.orange","cucumbertree","apple",
                   "white.mulberry","blackgum","eastern.hophornbeam","sourwood",
                   "paulownia..empress.tree.","eastern.cottonwood","bigtooth.aspen",
                   "quaking.aspen","black.locust","black.willow","sassafras",
-                  "unknown.dead.hardwood","other.or.unknown.live.tree")]),
+                  "other.or.unknown.live.tree")]),
 	"total"=rowSums(FIA.spec1[,3:93]))
 
 # sort data frame so rows increase by county id number
@@ -285,14 +287,14 @@ col <- c("#377EB8", "#984EA3", "#4DAF4A", "#E41A1C", "cyan2", "green", "#F781BF"
 species <- c("ash", "basswood", "beech", "cherry", "elm", "hackberry", "hickory", "honey locust", "maple", "oak", "pine", "sycamore", "tulip", "walnut", "other")
 
 # turn on to write file to disk
-#png("exportedFigs/PieCharts_margTest.png", type = "cairo", units = "in", width = 7, height = 5, res = 300)
+#png("exportedFigs/PieCharts.png", type = "cairo", units = "in", width = 7, height = 5, res = 300)
 
 par(mfrow=c(1,2))
 
 # PLS
 par(mar = c(2, 0.1, 0, 0.2)) 
 plot(county.proj) 
-title(main="Settlement Era")
+#title(main="Settlement Era")
 # add pie chart
 for (i in 1:27) {
   floating.pie(pls.pies[i,2], pls.pies[i,3], 
@@ -303,7 +305,7 @@ for (i in 1:27) {
 # FIA
 par(mar = c(2, 0.2, 0, 0.1)) 
 plot(county.proj) 
-title(main="Modern")
+#title(main="Modern")
 # add pie chart
 for (i in 1:27) {
   floating.pie(fia.pies[i,2], fia.pies[i,3], 
