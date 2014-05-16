@@ -279,7 +279,7 @@ Composition NMDS
 ----------------------------
 We ran an ordination using non-metric multidimensional scaling to assess how composition differed by county in the two time periods.
 
-```{r NMDS, fig.width=9, fig.height=5}
+```{r NMDS, eval=FALSE}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
@@ -307,6 +307,14 @@ colnames(FIA.nmds.min) <- c('NMDS 1','NMDS 2')
 PLS.nmds.vf<- vf(PLS.nmds.min, pls[,3:17])
 FIA.nmds.vf<- vf(FIA.nmds.min, fia[,3:17]) 
 
+# save these objects for plotting (to "freeze" stochasticity)
+save(pls, fia, PLS.nmds.min, FIA.nmds.min, PLS.nmds.vf, FIA.nmds.vf, PLSnmds, FIAnmds, file='R Output/NMDS.RData')
+```
+
+```{r nmdsPlot, fig.width=9, fig.height=5}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+load('R Output/NMDS.RData')
+
 # assign county groups (1 = nw, 2 = se)
 pls$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
 pls$color <- apply(as.array(pls$region),1,function (x) {
@@ -317,21 +325,25 @@ pls$color <- apply(as.array(pls$region),1,function (x) {
 # Plot NMDS min stress result - base plot
 par(mfrow=c(1,2))
 
+yrange <- c(-.45,0.58)
+xrange <- c(-.45, 0.4)
+
 par(mar=c(5,4,2,1))
-plot(PLS.nmds.min, main='Settlement-Era', col=pls$color, pch=16)
+plot(PLS.nmds.min, main='Settlement-Era', col=pls$color, pch=16, xlim=xrange, ylim=yrange)
 plot(PLS.nmds.vf)
 legend('bottomleft', legend=paste0('r^2 = ',round(max(PLSnmds$r2),2)), bty='n')  
 
 par(mar=c(5,4,2,1))
-plot(FIA.nmds.min, main='Modern', col=pls$color, pch=16)
+plot(FIA.nmds.min, main='Modern', col=pls$color, pch=16, xlim=xrange, ylim=yrange)
 plot(FIA.nmds.vf)
-legend('bottomright', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n') 
+legend('bottomleft', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n') 
 
 # empty plot over full device
 par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
 plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
 # add legend (for example)
 legend("bottom", legend=c('southeast counties','northwest counties'), fill = c('darkmagenta','darkorange2'), bty='n')
+
 
 # ggplot
 #library(ggplot2)
