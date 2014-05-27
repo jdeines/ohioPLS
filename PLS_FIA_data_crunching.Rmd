@@ -287,37 +287,39 @@ col <- c("#377EB8", "#984EA3", "#4DAF4A", "#E41A1C", "cyan2", "green", "#F781BF"
 species <- c("ash", "basswood", "beech", "cherry", "elm", "hackberry", "hickory", "honey locust", "maple", "oak", "pine", "sycamore", "tulip", "walnut", "other")
 
 # turn on to write file to disk
-#png("exportedFigs/PieCharts.png", type = "cairo", units = "in", width = 7, height = 5, res = 300)
+#png("exportedFigs/PieCharts.png", type = "cairo", units = "in", width = 7, height = 4.5, res=2000)
 
 par(mfrow=c(1,2))
 
 # PLS
 par(mar = c(2, 0.1, 0, 0.2)) 
-plot(county.proj) 
+plot(county.proj, col='azure3',border='white',lwd=2) 
 #title(main="Settlement Era")
 # add pie chart
 for (i in 1:27) {
   floating.pie(pls.pies[i,2], pls.pies[i,3], 
                x=pls.pies[i,4:18][!pls.pies[i,4:18]==0], radius=14000, 
-               col=col[!pls.pies[i,4:18]==0])
+               col=col[!pls.pies[i,4:18]==0], edges=500)
 }
+
 
 # FIA
 par(mar = c(2, 0.2, 0, 0.1)) 
-plot(county.proj) 
+plot(county.proj, col='azure3',border='white',lwd=2) 
 #title(main="Modern")
 # add pie chart
 for (i in 1:27) {
   floating.pie(fia.pies[i,2], fia.pies[i,3], 
                x=fia.pies[i,4:18][!fia.pies[i,4:18]==0], radius=14000, 
-               col=col[!fia.pies[i,4:18]==0])
+               col=col[!fia.pies[i,4:18]==0], edges=500)
 }
 
 par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
 plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
 # add legend
 legend("bottom", species, fill = col, border = "black", ncol=5, bty='n')
-
+text(.6,.93,"Modern", cex=1.2)
+text(-.5,.93,"Pre-settlement", cex=1.2)
 
 #dev.off()
 
