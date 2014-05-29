@@ -349,9 +349,11 @@ legend("bottom", legend=c('southeast counties','northwest counties'), fill = c('
 #library(ggplot2)
 ```
 
-County Composition Stats
+County Composition Stats for Manuscript
 -----------------------------
-Quantitative descriptions of composition and changes
+Quantitative descriptions of composition and changes, and land use percentages, used in the manuscript
+
+### Composition
 
 ```{r compStats}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
@@ -404,5 +406,29 @@ seFIA
 # change in proportion 
 seFIA['mean',] - sePLS['mean',]
 
+```
+
+
+### Land Use
+Summarize forest coverage in both regions
+
+```{r landUseNumbers}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# read in data
+landuse <- read.csv("R Output/OHCountyLandCover_aggregated_nmds.csv")
+centroids <- read.csv("R output/OH_county_centroids_latlong.csv") 
+
+# subset enviro and land use to 27 data counties, add coords
+landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", all.y = FALSE)
+
+# 1 = northwest, 2 = southeast
+landuse2$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
+
+regionSplit <- split(landuse2, landuse2$region)
+names(regionSplit) <- c('Northwest','Southeast')
+
+# Regional mean coverage by land use type
+sapply(regionSplit, function(x) colMeans(x[,5:14]))
 ```
 
