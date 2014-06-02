@@ -349,13 +349,13 @@ legend("bottom", legend=c('southeast counties','northwest counties'), fill = c('
 #library(ggplot2)
 ```
 
-County Composition Stats for Manuscript
+Stats for Manuscript
 -----------------------------
 Quantitative descriptions of composition and changes, and land use percentages, used in the manuscript
 
 ### Composition
 
-```{r compStats}
+```{r compStatsMS}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
@@ -412,7 +412,7 @@ seFIA['mean',] - sePLS['mean',]
 ### Land Use
 Summarize forest coverage in both regions
 
-```{r landUseNumbers}
+```{r landUseNumbersMS}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 # read in data
@@ -430,5 +430,29 @@ names(regionSplit) <- c('Northwest','Southeast')
 
 # Regional mean coverage by land use type
 sapply(regionSplit, function(x) colMeans(x[,5:14]))
+```
+
+### Climate
+Summarize climate in both regions
+
+```{r ClimateStatsMS}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+
+# read in data
+envar <- read.csv("R output/OH_EnviroVarCountySummary.csv")
+centroids <- read.csv("R output/OH_county_centroids_latlong.csv") 
+
+# subset enviro and land use to 27 data counties, add coords
+envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", all.y = FALSE)
+
+# 1 = northwest, 2 = southeast
+envar2$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
+
+regionSplit <- split(envar2, envar2$region)
+names(regionSplit) <- c('Northwest','Southeast')
+
+# Regional mean coverage by land use type
+sapply(regionSplit, function(x) colMeans(x[,5:11]))
+
 ```
 
