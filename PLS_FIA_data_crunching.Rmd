@@ -338,6 +338,8 @@ pls <- read.csv("R output/OHCompCleanPLS_percent.csv")
 
 # calculate difference
 change2 <- cbind(fia[,c('id','County')], fia[,3:17]-pls[,3:17])
+# convert proportional data to percentage
+change2[,3:17] <- change2[,3:17]*100
 
 # read in county shapefile and reproject for figure using
 # Ohio state plane coordinates, NAD83/Ohio South, EPSG 32123
@@ -347,16 +349,41 @@ county.proj <- spTransform(county, CRS("+init=epsg:32123"))
 # Join data with county shapefile by the county ID number 
 change3 <- merge(county.proj, change2, by.x= "ID", by.y= "id", all.x=TRUE)
 
-#png("exportedFigs/SpeciesChangeWorking.png", type = "cairo", units = "in", width = 7, height = 5, res = 300)
+#png("exportedFigs/SpeciesChangeWorking_NewScheme_noBg.png", type = "cairo", units = "in", width = 7, height = 5, res = 2000)
 
 
 ## LATTICE PLOTS
-colchange <- c("blue4","blue3","blue","dodgerblue","cyan3","cyan","lightgreen",
-  "yellow","gold","orange","darkorange2","orangered2","darkred")
-spplot(change3[,14:28],col.regions=colchange, at=seq(-.55,.55,(.55+.55)/13),
-       as.table=T, colorkey=list(labels=list(cex=1.2)))
-#grid.text("Percent Difference", x=unit(0.97, "npc"), y=unit(0.50, "npc"), rot=90)
+# colchange <- c("blue4","blue3","blue","dodgerblue","cyan3","cyan","lightgreen",
+#   "yellow","gold","orange","darkorange2","orangered2","darkred")
+# labels <- names(change3[,14:28])
+# labels[8] <- 'honey locust'
+# spplot(change3[,14:28],col.regions=colchange, col='gray29', names.attr=labels, 
+#        at=seq(-55,55,(55+55)/13), as.table=T, 
+#        colorkey=list(labels=list(cex=1.2)), 
+#        par.settings = list(panel.background=list(col="gray96"),
+#                              layout.widths=list(right.padding=6)))
+# grid.text("Change in Relative Abundance (%)", x=unit(0.95, "npc"), y=unit(0.50, "npc"), rot=-90)
 
+
+# alternative color scheme
+library(RColorBrewer)
+library(grid)
+labels <- names(change3[,14:28])
+labels[8] <- 'honey locust'
+colchange <- c("#a50026","#d73027","#f46d43","#fdae61","#fed569","#ffffbf","#abd9e9",
+               "#92c5de","#74add1","#4575b4","#313695")
+spplot(change3[,14:28],col.regions=rev(colchange), col='gray29',
+       names.attr=labels, at=seq(-55,55,(55+55)/11), as.table=T, 
+       #colorkey=list(labels=list(cex=1.2)), 
+       par.settings = list(panel.background=list(col="white"),
+                           layout.widths=list(right.padding=6)))
+# legend title
+grid.text('Change in Relative Abundance (%)',x=unit(0.95, "npc"),y=unit(0.5, 'npc'), rot=-90)
+
+#col.regions=rev(brewer.pal(11,'RdYlBu'))
+
+
+# Spectral
 # http://stackoverflow.com/questions/3932038/plot-a-legend-outside-of-the-plotting-area-in-base-graphics
 
 # #-------------------------
