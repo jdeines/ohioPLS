@@ -351,22 +351,8 @@ change3 <- merge(county.proj, change2, by.x= "ID", by.y= "id", all.x=TRUE)
 
 #png("exportedFigs/SpeciesChangeWorking_NewScheme_noBg.png", type = "cairo", units = "in", width = 7, height = 5, res = 2000)
 
-
-## LATTICE PLOTS
-# colchange <- c("blue4","blue3","blue","dodgerblue","cyan3","cyan","lightgreen",
-#   "yellow","gold","orange","darkorange2","orangered2","darkred")
-# labels <- names(change3[,14:28])
-# labels[8] <- 'honey locust'
-# spplot(change3[,14:28],col.regions=colchange, col='gray29', names.attr=labels, 
-#        at=seq(-55,55,(55+55)/13), as.table=T, 
-#        colorkey=list(labels=list(cex=1.2)), 
-#        par.settings = list(panel.background=list(col="gray96"),
-#                              layout.widths=list(right.padding=6)))
-# grid.text("Change in Relative Abundance (%)", x=unit(0.95, "npc"), y=unit(0.50, "npc"), rot=-90)
-
-
 # alternative color scheme
-library(RColorBrewer)
+#library(RColorBrewer) # used to get 'Spectral' color scheme, which I modifed below
 library(grid)
 labels <- names(change3[,14:28])
 labels[8] <- 'honey locust'
@@ -380,26 +366,8 @@ spplot(change3[,14:28],col.regions=rev(colchange), col='gray29',
 # legend title
 grid.text('Change in Relative Abundance (%)',x=unit(0.95, "npc"),y=unit(0.5, 'npc'), rot=-90)
 
-#col.regions=rev(brewer.pal(11,'RdYlBu'))
-
-
-# Spectral
-# http://stackoverflow.com/questions/3932038/plot-a-legend-outside-of-the-plotting-area-in-base-graphics
-
-# #-------------------------
-#  set.seed(1) # just to get the same random numbers
-#  par(xpd=FALSE) # this is usually the default
-# 
-#  plot(1:3, rnorm(3), pch = 1, lty = 1, type = "o", ylim=c(-2,2), bty='L')
-#  # this legend gets clipped:
-#  legend(2.8,0,c("group A", "group B"), pch = c(1,2), lty = c(1,2))
-# 
-#  # so turn off clipping:
-#  par(xpd=TRUE)
-#  legend(2.8,-1,c("group A", "group B"), pch = c(1,2), lty = c(1,2))
-
-
 #dev.off()
+
 ```
 
 
