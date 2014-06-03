@@ -297,7 +297,7 @@ parSettings <- list(panel.background = list(col="white"),
                                         axis.xlab.padding = 0,
                                         xlab.key.padding = 0,
                                         key.sub.padding = 0,
-                                        bottom.padding = 1),
+                                        bottom.padding = 3),
                     layout.widths = list(left.padding = 0,
                                         key.ylab.padding = 0,
                                         ylab.axis.padding = 0,
@@ -357,7 +357,7 @@ library(lattice)
 
 #grid.text('Precip (mm)',x=unit(0.95, "npc"),y=unit(0.5, 'npc'), rot=-90)
 
-#png("exportedFigs/enviroTestFont.png", type = "cairo", units = "in", width = 5, height = 5, res=2000,pointsize=8)
+#png("exportedFigs/enviro2.png", type = "cairo", units = "in", width = 5, height = 5, res=2000,pointsize=8)
 
 par(mar=c(0,0,0,0))
 plot(pptann, split=c(3,1,3,5), position=c(.078,0,1,1), more=T)
