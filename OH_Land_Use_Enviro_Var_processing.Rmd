@@ -281,34 +281,105 @@ setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 landUse <- raster("GISlayers/NLCD_OH/NLCD2006_OH.img")
 envar <- read.csv('R output/OH_EnviroVarCountySummary.csv')
+
+
 county <- readOGR("GISlayers","OHCounty", verbose=F)
 county.proj <- spTransform(county[,11:12], CRS("+init=epsg:32123"))
 
 # add envar attribute data to county polygons
 envarMap <- merge(county.proj, envar, by.x = "ID", by.y = "countyID", all.x = TRUE)
 
-# store a bunch of spplots to combine below
-slope <- spplot(envarMap[,5], col.regions=terrain.colors(16))
-soilph <- spplot(envarMap[,4], col.regions=heat.colors(16))
-soilh20 <- spplot(envarMap[,6], col.regions=rev(topo.colors(16)))
-pptann <- spplot(envarMap[,8], col.regions = rev(topo.colors(16)))
-tempann <- spplot(envarMap[,7], col.regions = rev(brewer.pal(10, "RdYlBu")), 
-                  at=seq(17.4,20.3,((20.3-17.4)/10)))
-tminjan <- spplot(envarMap[,9], col.regions = rev(brewer.pal(9, "Blues")), 
-                  at=seq(-9.66, -5.86, ((9.66-5.86)/9)))
-tmaxjul <- spplot(envarMap[,10], col.regions = brewer.pal(9, "OrRd"), 
-                  at=seq(27.20, 30.35, ((30.35-27.20)/9)))
-#plot(landUse)
+# set margins
+parSettings <- list(panel.background = list(col="white"),
+                    layout.heights = list(top.padding = 0,
+                                        main.key.padding = 0,
+                                        key.axis.padding = 0,
+                                        axis.xlab.padding = 0,
+                                        xlab.key.padding = 0,
+                                        key.sub.padding = 0,
+                                        bottom.padding = 1),
+                    layout.widths = list(left.padding = 0,
+                                        key.ylab.padding = 0,
+                                        ylab.axis.padding = 0,
+                                        axis.key.padding = 0.5,
+                                        right.padding = 0))
+# set color key
+legendSettings <- list(space='right', tick.number=3,height=1,width=1)
 
-# plot trellis objects in a matrix
-plot(pptann, split=c(1,1,4,2), main="Annual Precip", more=TRUE)
-plot(tempann, split=c(2,1,4,2), main="Mean Annual Temp", more=TRUE)
-plot(tminjan, split=c(3,1,4,2), main="Min January Temp", more=TRUE)
-plot(tmaxjul, split=c(4,1,4,2), main="Max July Temp", more=TRUE)
-plot(soilph, split=c(1,2,4,2), main="Soil pH", more=TRUE)
-plot(soilh20, split=c(2,2,4,2), main="Soil Water", more=TRUE)
-plot(slope, split=c(3,2,4,2), main="Average Slope", more=FALSE)
-#plot(landuse, split=c(4,2,4,2), more=FALSE)
+# store a bunch of spplots to combine below
+slope <- spplot(envarMap[,5], col.regions=terrain.colors(16),col='gray29',
+                 par.settings = parSettings,
+                 colorkey=legendSettings)
+
+soilph <- spplot(envarMap[,4], col.regions=heat.colors(16),col='gray29',
+                  par.settings = parSettings,
+                 colorkey=legendSettings)
+
+soilh20 <- spplot(envarMap[,6], col.regions=rev(topo.colors(16)),col='gray29',
+                 par.settings = parSettings,
+                 colorkey=legendSettings)
+
+pptann <- spplot(envarMap[,8], col.regions = rev(topo.colors(16)),col='gray29',
+                 par.settings = parSettings,
+                 colorkey=legendSettings)
+
+
+tempann <- spplot(envarMap[,7], col.regions = rev(brewer.pal(10, "RdYlBu")), 
+                  at=seq(17.4,20.3,((20.3-17.4)/10)),col='gray29',
+                  par.settings = parSettings,
+                  colorkey=legendSettings)
+
+
+tminjan <- spplot(envarMap[,9], col.regions = rev(brewer.pal(9, "Blues")), 
+                  at=seq(-9.66, -5.86, ((9.66-5.86)/9)),col='gray29',
+                 par.settings = parSettings,
+                 colorkey=legendSettings)
+
+tmaxjul <- spplot(envarMap[,10], col.regions = brewer.pal(9, "OrRd"), 
+                  at=seq(27.20, 30.35, ((30.35-27.20)/9)),col='gray29',
+                 par.settings = parSettings,
+                 colorkey=legendSettings)
+
+
+# # plot trellis objects in a matrix
+# plot(pptann, split=c(1,1,4,2), main="Annual Precip", more=TRUE)
+# plot(tempann, split=c(2,1,4,2), main="Mean Annual Temp", more=TRUE)
+# plot(tminjan, split=c(3,1,4,2), main="Min January Temp", more=TRUE)
+# plot(tmaxjul, split=c(4,1,4,2), main="Max July Temp", more=TRUE)
+# plot(soilph, split=c(1,2,4,2), main="Soil pH", more=TRUE)
+# plot(soilh20, split=c(2,2,4,2), main="Soil Water", more=TRUE)
+# plot(slope, split=c(3,2,4,2), main="Average Slope", more=FALSE)
+
+
+library(grid)
+library(lattice)
+# plot for ms
+
+#grid.text('Precip (mm)',x=unit(0.95, "npc"),y=unit(0.5, 'npc'), rot=-90)
+
+#png("exportedFigs/enviroTestFont.png", type = "cairo", units = "in", width = 5, height = 5, res=2000,pointsize=8)
+
+par(mar=c(0,0,0,0))
+plot(pptann, split=c(3,1,3,5), position=c(.078,0,1,1), more=T)
+plot(tempann, split=c(3,2,3,5), position=c(0.015,0,1,1), more=TRUE)
+plot(tminjan, split=c(3,3,3,5), position=c(0,0,1,1), more=TRUE)
+plot(tmaxjul, split=c(3,4,3,5), position=c(0.015,0,1,1),more=TRUE)
+plot(slope, split=c(3,5,3,5), position=c(0.015,0,1,1),more=T)
+
+#par(mar=c(1,0,1,0))
+plot(soilph, split=c(1,5,3,5), more=TRUE)
+plot(soilh20, split=c(2,5,3,5), more=F)
+
+# oopt <- lattice.options()
+# lattice.options(layout.widths =
+#         list(key.right = list(x = 2,
+#                  units = "cm", data = NULL)))
+# print(pptann, split=c(1,1,1,5), position=c( 0.2,0,1,1), more=T)
+# print(tempann, split=c(1,2,1,5), more=TRUE)
+# print(tminjan, split=c(1,3,1,5), more=TRUE)
+# print(tmaxjul, split=c(1,4,1,5), more=TRUE)
+# print(slope, split=c(1,5,1,5), more=FALSE)
+# lattice.options(oopt)
 
 
 
