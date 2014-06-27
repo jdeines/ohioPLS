@@ -321,6 +321,15 @@ pls$color <- apply(as.array(pls$region),1,function (x) {
   if (x == 1) out <- 'darkorange2'
   else out <- 'darkmagenta'
   return(out) })
+pls$pch <- apply(as.array(pls$region),1,function (x) {
+  if (x == 1) out <- 3
+  else out <- 25
+  return(out) })
+
+names(PLS.nmds.min) <- c('Axis 1', 'Axis 2')
+names(FIA.nmds.min) <- c('Axis 1', 'Axis 2')
+
+#png("exportedFigs/ordination_bw.png", type = "cairo", units = "in", width = 7, height = 4, res = 2000)
 
 # Plot NMDS min stress result - base plot
 par(mfrow=c(1,2))
@@ -329,20 +338,23 @@ yrange <- c(-.45,0.58)
 xrange <- c(-.45, 0.4)
 
 par(mar=c(5,4,2,1))
-plot(PLS.nmds.min, main='Settlement-Era', col=pls$color, pch=16, xlim=xrange, ylim=yrange)
+plot(PLS.nmds.min, main='Settlement-Era', col='black', pch=pls$pch, xlim=xrange, ylim=yrange)
 plot(PLS.nmds.vf)
-legend('bottomleft', legend=paste0('r^2 = ',round(max(PLSnmds$r2),2)), bty='n')  
+legend('topleft', legend=paste0('r^2 = ',round(max(PLSnmds$r2),2)), bty='n')  
 
 par(mar=c(5,4,2,1))
-plot(FIA.nmds.min, main='Modern', col=pls$color, pch=16, xlim=xrange, ylim=yrange)
+plot(FIA.nmds.min, main='Modern', col='black', pch=pls$pch, xlim=xrange, ylim=yrange)
 plot(FIA.nmds.vf)
-legend('bottomleft', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n') 
+legend('topleft', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n') 
 
 # empty plot over full device
 par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
 plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
 # add legend (for example)
-legend("bottom", legend=c('southeast counties','northwest counties'), fill = c('darkmagenta','darkorange2'), bty='n')
+legend("bottom", legend=c('southeast counties','northwest counties'), pch=c(25,3), bty='n')
+
+## no arrow vectors
+# extract the [x,y] coordinates from the PLS.nmds.vf object
 
 
 # ggplot
