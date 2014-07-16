@@ -1,5 +1,5 @@
 ```{r options, include=FALSE}
-opts_chunk$set(cache = TRUE)
+#opts_chunk$set(cache = TRUE)
 ```
 
 Ohio PLS and FIA Data Processing
@@ -105,16 +105,11 @@ colnames(comp.df2) <- gsub("\\ ", ".", colnames(comp.df2))
 write.csv(comp.df2,"R output/OHCountyCompRaw_PLS.csv", row.names=F)
 ```
 
-This Ohio dataset includes `r numDataPoints` corner data locations and `r numTrees` trees recorded. There were `r length(species)-2` names recorded in the PLS dataset.  
-
-**note:** retrieving the names directly from the data (as done above) discovered 2 species missed in the manual creation in past versions (persimmon and swamp ash), as well as two entry typos missed in cleaning ('sugar mpale' and 'Poplar').  I added swamp ash to the 'ash' category, and persimmon to 'other'.
-
-**note:** This version omits writing out a shapefile with the raw county counts as it's probably not helpful
-
+This Ohio dataset includes `r numDataPoints` corner data locations and `r numTrees` trees recorded. There were `r length(species)` names recorded in the PLS dataset.  
 
 Data Cleaning and Aggregation: PLS
 -----------------------------------
-This aggregates the `r length(species)-2` common names into 15 taxonomic groups. Next, it excludes counties with low sample numbers from analysis (because the counties don't directly align with the township borders, there are a few counties with a small number of points that belong to townships mostly within neighboring counties).  
+This aggregates the `r length(species)` common names into 15 taxonomic groups. Next, it excludes counties with low sample numbers from analysis (because the counties don't directly align with the township borders, there are a few counties with a small number of points that belong to townships mostly within neighboring counties).  
 
 ```{r cleanPLS, fig.height=5, fig.width=5}
 raw.comp <- comp.df2
@@ -173,6 +168,7 @@ sum(pls.comp$total)
 pls.comppct <- cbind(countyID = pls.comp$county, countyName = pls.comp$CountyName, 
                      pls.comp[,3:17]/pls.comp$total, total = pls.comp$total)
 
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 write.csv(pls.comp,"R output/OHCompClean_PLS.csv",row.names=F)
 write.csv(pls.comppct, "R output/OHCompCleanPLS_percent.csv", row.names=F)
 ```
