@@ -97,8 +97,10 @@ comp.df$total <- rowSums(comp.df[,-1])
 countyKey <- as.data.frame(county[,11:12])
 comp.df2 <- merge(comp.df,countyKey,by.x='county', by.y='ID')
 comp.df2 <- comp.df2[,c(1,73,2:72)]
-```
-```{r PLStoCountyRaw_out}
+
+# replace spaces from column names with period
+colnames(comp.df2) <- gsub("\\ ", ".", colnames(comp.df2)) 
+
 # write output to CSV for data sharing
 write.csv(comp.df2,"R output/OHCountyCompRaw_PLS.csv", row.names=F)
 ```
@@ -121,7 +123,7 @@ raw.comp <- comp.df2
 raw.comp2 <- cbind(raw.comp[,c('county','CountyName')],
 	"ash"=rowSums(raw.comp[,c("ash", "black.ash", "blue.ash", 
                              "hoop.ash", "swamp.ash", "white.ash")]),
-	"basswood"=rowSums(raw.comp[,c("basswood","linden")]),
+	"basswood"=rowSums(raw.comp[,c("basswood","linden","lynn")]),
 	"beech"=raw.comp$beech,
 	"cherry"=raw.comp$cherry,
 	"elm"=rowSums(raw.comp[,c("elm", "red.elm")]),
@@ -135,13 +137,13 @@ raw.comp2 <- cbind(raw.comp[,c('county','CountyName')],
                 "shingle.oak", "swamp.oak", "white.oak", "yellow.oak")]),
 	"pine"=rowSums(raw.comp[,c("pine", "pitch.pine")]),
 	"sycamore"=raw.comp$sycamore,
-	"tulip"=raw.comp$lynn,
+	"tulip"=raw.comp$poplar,
 	"walnut"=rowSums(raw.comp[,c("black.walnut", "walnut", "white.walnut")]),
-	"other"=rowSums(raw.comp[,c("red.bud", "chestnut", "poplar", "hemlock", 
+	"other"=rowSums(raw.comp[,c("red.bud", "chestnut", "hemlock", 
               "birch", "aspen", "cottonwood", 'persimmon', "trembling.aspen", 
               "gum", "black.gum", "dogwood", "pepperidge", "mulberry", "ironwood",
-              "serviceberry", "hornbeam", "coffeetree", "cedar", "locust", "black.locust",
-              "buckeye","sassafras", "willow", "sourwood")]),
+              "serviceberry", "hornbeam", "coffeetree", "cedar", "locust", 
+              "black.locust", "buckeye","sassafras", "willow", "sourwood")]),
 	"total"=raw.comp$total)
 
 # check to make sure we got all species by re-summing the total count for each
