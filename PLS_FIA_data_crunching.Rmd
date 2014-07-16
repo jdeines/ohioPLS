@@ -53,7 +53,7 @@ library(plyr)
 PLS Processing: Summarize Raw Data by County
 ---------------------------------------
 
-```{r PLStoCountyRaw, eval=FALSE}
+```{r PLStoCountyRaw}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 # load corner point shapefile (data collected from georeferenced maps). Current version OHcorners.shp output based: January 30, 2013. CRS = NAD83, latlong
@@ -81,12 +81,16 @@ corners$countyID <- over(corners, county)$ID
 
 
 # Calculate total # of each species in each county and store it as matrix "comp"
-comp<-t(sapply(as.numeric(levels(factor(corners$countyID))),function(j)  {
-	J<-corners[ !is.na(corners$countyID)& corners$countyID==j,]  
-	c(county=j,sapply(species, function(i)sum(c(J$SP1==i,J$SP2==i,J$SP3==i,J$SP4==i),na.rm=TRUE))) 
-}))
+comp <- t(sapply(as.numeric(levels(factor(corners$countyID))), function(j)  {
+	        J <- corners[ !is.na(corners$countyID) & corners$countyID==j,]  
+	        c(county=j, sapply(species, function(i) {
+            sum(c(J$SP1==i,J$SP2==i,J$SP3==i,J$SP4==i),na.rm=TRUE)
+            }))
+          }
+        ))
 
 # sum the trees for each county (sum row excluding county column)
+comp.df <- as.data.frame(comp)
 comp.df$total <- rowSums(comp.df[,-1])
 
 # add county names to output
@@ -94,8 +98,8 @@ countyKey <- as.data.frame(county[,11:12])
 comp.df2 <- merge(comp.df,countyKey,by.x='county', by.y='ID')
 comp.df2 <- comp.df2[,c(1,73,2:72)]
 ```
-```{r PLStoCountyRaw_out, eval=FALSE}
-# write output to CSV for intermediate starting point
+```{r PLStoCountyRaw_out}
+# write output to CSV for data sharing
 write.csv(comp.df2,"R output/OHCountyCompRaw_PLS.csv", row.names=F)
 ```
 
@@ -111,10 +115,7 @@ Data Cleaning and Aggregation: PLS
 This aggregates the `r length(species)-2` common names into 15 taxonomic groups. Next, it excludes counties with low sample numbers from analysis (because the counties don't directly align with the township borders, there are a few counties with a small number of points that belong to townships mostly within neighboring counties).  
 
 ```{r cleanPLS, fig.height=5, fig.width=5}
-setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
-
-# read in raw CSV 
-raw.comp <- read.csv("R output/OHCountyCompRaw_PLS.csv")
+raw.comp <- comp.df2
 
 #----PLS taxon groupings----# 
 raw.comp2 <- cbind(raw.comp[,c('county','CountyName')],
