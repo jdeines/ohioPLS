@@ -11,8 +11,7 @@ March 2014
 
 This script analyses correlations among Ohio vegetation (historic and modern) and covariates (land use and environmental variables).
 
-Analyses aim to describe presettlement vegetation in Ohio and examine relationships among
-modern vegetation (using FIA data), historic vegetation, land use, and environmental variables.
+Analyses aim to describe presettlement vegetation in Ohio and examine relationships among modern vegetation (using FIA data), historic vegetation, land use, and environmental variables.
 
 #### Depends:
 This script relies on output from the following scripts
@@ -56,6 +55,8 @@ PLS, FIA, environmental variables, and land use summaries are analyzed for corre
 * Proportional species composition data is arc sine square root transformed
 
 **Note:** In previous versions of this script prior to Jill's pre-publication cleaning effort, there was a typo in the land use/composition correlations where the correlation between land use and PLS composition was stored as the variable 'fia.land', and vice versa. **Thus the patterns between land use and composition previously described in Dan's thesis version are reversed**. The number of the correlations differs due to data cleaning, but the pattern of strong/weak and positive/negative correlations is reversed.
+
+These are not currently in the manuscript.
 
 ```{r Correlations}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
@@ -117,12 +118,14 @@ landuse <- read.csv("R Output/OHCountyLandCover_aggregated_nmds.csv")
 centroids <- read.csv("R output/OH_county_centroids_latlong.csv") 
 
 # subset enviro and land use to 27 data counties, add coords
-envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", all.y = FALSE)
-landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", all.y = FALSE)
+envar2   <- merge(centroids, envar, by.x = "ID", by.y = "countyID", 
+                  all.y = FALSE)
+landuse2 <- merge(centroids, landuse, by.x = "ID", by.y = "Polygon", 
+                  all.y = FALSE)
 
 # arcsine squareroot transform proportional data (land use, pls, fia)
-pls[,3:17]     <- asin(sqrt(pls[,3:17]))  	
-fia[,3:17]     <- asin(sqrt(fia[,3:17]))	
+pls[,3:17] <- asin(sqrt(pls[,3:17]))  	
+fia[,3:17] <- asin(sqrt(fia[,3:17]))	
 landuse2[,5:14] <- asin(sqrt(landuse2[,5:14])) 
 ```
 
@@ -141,7 +144,8 @@ PLSdist <- ecodist::distance(pls[,3:17], method= "bray-curtis")
 spatialDist<- ecodist::distance(centroids[,c('X','Y')], method = "euclidean")
 
 # output dataframe
-MantelResults <- data.frame(variable = rep('tbd',30), dataset = NA, mantelr = NA, pval = NA)
+MantelResults <- data.frame(variable = rep('tbd',30), dataset = NA, 
+                            mantelr = NA, pval = NA)
 MantelResults$variable <- as.character(MantelResults$variable)
 
 # composition and space
@@ -318,8 +322,8 @@ load('R Output/NMDS.RData')
 # assign county groups (1 = nw, 2 = se)
 pls$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
 pls$color <- apply(as.array(pls$region),1,function (x) {
-  if (x == 1) out <- 'darkorange2'
-  else out <- 'darkmagenta'
+  if (x == 1) out <- 'gray10'
+  else out <- 'gray60'
   return(out) })
 pls$pch <- apply(as.array(pls$region),1,function (x) {
   if (x == 1) out <- 3
@@ -338,12 +342,14 @@ yrange <- c(-.45,0.58)
 xrange <- c(-.45, 0.4)
 
 par(mar=c(5,4,2,1))
-plot(PLS.nmds.min, main='Settlement-Era', col='black', pch=pls$pch, xlim=xrange, ylim=yrange)
-plot(PLS.nmds.vf)
+plot(PLS.nmds.min, main='Settlement-Era', col=pls$color, pch=19, xlim=xrange, 
+     cex=.8,ylim=yrange)
+plot(PLS.nmds.vf,pch=1)
 legend('topleft', legend=paste0('r^2 = ',round(max(PLSnmds$r2),2)), bty='n')  
 
 par(mar=c(5,4,2,1))
-plot(FIA.nmds.min, main='Modern', col='black', pch=pls$pch, xlim=xrange, ylim=yrange)
+plot(FIA.nmds.min, main='Modern', col=pls$color, pch=19, xlim=xrange, 
+     cex=.8,ylim=yrange)
 plot(FIA.nmds.vf)
 legend('topleft', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n') 
 
@@ -351,11 +357,11 @@ legend('topleft', legend=paste0('r^2 = ',round(max(FIAnmds$r2),2)), bty='n')
 par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
 plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
 # add legend (for example)
-legend("bottom", legend=c('southeast counties','northwest counties'), pch=c(25,3), bty='n')
+legend("bottom", legend=c('southeast counties','northwest counties'), pch=19, bty='n', col=c('gray60','gray10'))
 
 ## no arrow vectors
 # extract the [x,y] coordinates from the PLS.nmds.vf object
-
+#plot(PLS.nmds.vf[,1],PLS.nmds.vf[,2],pch=rownames(PLS.nmds.vf),add=T)
 
 # ggplot
 #library(ggplot2)
