@@ -170,18 +170,16 @@ sum(pls.comp$total)
 #----CONVERT SPECIES NUMBERS TO PERCENTAGES ##
 
 # divide each cell with tree counts by the total tree count
-pls.comppct <- cbind(countyID = pls.comp$county, countyName = pls.comp$CountyName, pls.comp[,3:17]/pls.comp$total, 
-  total = pls.comp$total)
-```
-```{r cleanPLS_out, eval=FALSE}
-# write out data
+pls.comppct <- cbind(countyID = pls.comp$county, countyName = pls.comp$CountyName, 
+                     pls.comp[,3:17]/pls.comp$total, total = pls.comp$total)
+
 write.csv(pls.comp,"R output/OHCompClean_PLS.csv",row.names=F)
 write.csv(pls.comppct, "R output/OHCompCleanPLS_percent.csv", row.names=F)
 ```
 
 Data Cleaning and Aggregation: FIA
 -----------------------------------------
-Dan Williams downloaded data from FIA. He specified all species/individuals among a certain size class (> 9 in diameter, I believe) to match PLS methodology. Dan converted raw tree counts into percentage data in Excel. PDF's of downloaded county data are in the folder "FIA Tree Count PDFs", and I am guessing intermediate processing steps are in the folder 'FIA Ohio Summarized Data'. Both of these files are located in the 'FIAdataFromDan' folder in the working directory (CleanCodeAndData).
+Dan Williams downloaded data from FIA. He specified all species/individuals among a certain size class (> 9 in diameter) to match PLS methodology. Dan converted raw tree counts into percentage data in Excel. PDF's of downloaded county data are in the folder "FIA Tree Count PDFs", and I am guessing intermediate processing steps are in the folder 'FIA Ohio Summarized Data'. Both of these files are located in the 'FIAdataFromDan' folder in the working directory (CleanCodeAndData).
 
 May 14, 2014 - Revised so 'other' count does not include dead trees ('unknown dead hardwood' and 'unknown dead conifer')
 
