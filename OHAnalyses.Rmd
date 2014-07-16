@@ -407,21 +407,24 @@ sePLS <- rbind(mean = colMeans(southeastPLS[,3:17]), sd = apply(southeastPLS[,3:
 seFIA <- rbind(mean = colMeans(southeastFIA[,3:17]), sd = apply(southeastFIA[,3:17], 2, sd))
 
 # stats
-nwPLS 
+nwPLS[,order(-nwPLS[1,])] 
 northwestPLS[,c('countyName','beech','oak','ash','elm','maple','hickory')]
 
-nwFIA
+nwFIA[,order(-nwFIA[1,])]
 northwestFIA[,c('County','beech','oak','ash','elm','maple','hickory')]
 
 # change in proportion 
+sort(abs(nwFIA['mean',] - nwPLS['mean',]), decreasing=T)
 nwFIA['mean',] - nwPLS['mean',]
 
+## Southeast
+sePLS[,order(-sePLS[1,])]
+southeastPLS[,c('countyName','oak','hickory','maple','beech','other','tulip')]
 
-sePLS
-
-seFIA
+seFIA[,order(-seFIA[1,])]
 
 # change in proportion 
+sort(abs(seFIA['mean',] - sePLS['mean',]), decreasing=T)
 seFIA['mean',] - sePLS['mean',]
 
 ```
