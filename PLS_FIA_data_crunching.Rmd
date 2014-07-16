@@ -188,39 +188,43 @@ setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 # read in species level FIA county percentage data compiled by Dan
 FIA.spec1 <- read.csv("FIAdataFromDan/FIASpringSpeciesPercentage.csv")
-pls.comp1 <- read.csv("R output/OHCompClean_PLS.csv")
 
 # check PLS and FIA counties match
-sum(sort(pls.comp1$county) != sort(FIA.spec1$id))
+sum(sort(pls.comp$county) != sort(FIA.spec1$id))
 
 #----Combine Species Classes----#
 FIA.spec2 <-cbind(FIA.spec1[,c("id","County")],
-	"ash"=rowSums(FIA.spec1[,c("ash", "white.ash", "black.ash", "green.ash", "blue.ash")]),
-	"basswood"=FIA.spec1$american.basswood,
-	"beech"=FIA.spec1$american.beech,
-	"cherry"=rowSums(FIA.spec1[,c("black.cherry","pin.cherry","chokecherry","sweet.cherry")]),
-	"elm"=rowSums(FIA.spec1[,c("american.elm", "siberian.elm", "slippery.elm","rock.elm")]),
-	"hackberry"=FIA.spec1$hackberry,
-	"hickory"=rowSums(FIA.spec1[,c("hickory", "bitternut.hickory", "pignut.hickory", 
+	"ash" = rowSums(FIA.spec1[,c("ash", "white.ash", "black.ash", "green.ash", 
+                               "blue.ash")]),
+	"basswood" = FIA.spec1$american.basswood,
+	"beech"= FIA.spec1$american.beech,
+	"cherry" = rowSums(FIA.spec1[,c("black.cherry","pin.cherry","chokecherry",
+                                  "sweet.cherry")]),
+	"elm" = rowSums(FIA.spec1[,c("american.elm", "siberian.elm", "slippery.elm",
+                               "rock.elm")]),
+	"hackberry" = FIA.spec1$hackberry,
+	"hickory" = rowSums(FIA.spec1[,c("hickory", "bitternut.hickory", "pignut.hickory", 
                     "shellbark.hickory", "shagbark.hickory","mockernut.hickory")]),
-	"honeylocust"=FIA.spec1$honeylocust,
-	"maple"=rowSums(FIA.spec1[,c("black.maple", "red.maple", "silver.maple", "sugar.maple", 
-                  "norway.maple", "boxelder")]),
+	"honeylocust" = FIA.spec1$honeylocust,
+	"maple" = rowSums(FIA.spec1[,c("black.maple", "red.maple", "silver.maple", 
+                                 "sugar.maple", "norway.maple", "boxelder")]),
 	"oak"=rowSums(FIA.spec1[,c("oak", "white.oak", "swamp.white.oak", "scarlet.oak",
                 "northern.pin.oak", "shingle.oak", "overcup.oak", "bur.oak", 
                 "swamp.chestnut.oak", "chinkapin.oak", "pin.oak", "chestnut.oak", 
                 "northern.red.oak", "post.oak", "black.oak")]),
-	"pine"=rowSums(FIA.spec1[,c("eastern.white.pine", "scotch.pine", "loblolly.pine", 
-                "virginia.pine", "austrian.pine", "red.pine", "pitch.pine", "shortleaf.pine")]),
-	"sycamore"=FIA.spec1$american.sycamore,
-	"tulip"=FIA.spec1$yellow.poplar,
-	"walnut"=rowSums(FIA.spec1[,c("black.walnut","butternut")]),
-	"other"=rowSums(FIA.spec1[,c("chestnut","eastern.red.cedar","norway.spruce","blue.spruce",
-                  "eastern.hemlock","ohio.buckeye","yellow.buckeye",
-                  "ailanthus","european.alder","yellow.birch","sweet.birch","river.birch",
-                  "northern.catalpa","eastern.redbud","hawthorn","common.persimmon",
-                  "kentucky.coffeetree","sweetgum","osage.orange","cucumbertree","apple",
-                  "white.mulberry","blackgum","eastern.hophornbeam","sourwood",
+	"pine" = rowSums(FIA.spec1[,c("eastern.white.pine", "scotch.pine", 
+                                "loblolly.pine", "virginia.pine", "austrian.pine",
+                                "red.pine", "pitch.pine", "shortleaf.pine")]),
+	"sycamore" = FIA.spec1$american.sycamore,
+	"tulip" = FIA.spec1$yellow.poplar,
+	"walnut" = rowSums(FIA.spec1[,c("black.walnut","butternut")]),
+	"other" = rowSums(FIA.spec1[,c("chestnut","eastern.red.cedar","norway.spruce",
+                  "blue.spruce", "eastern.hemlock","ohio.buckeye","yellow.buckeye",
+                  "ailanthus","european.alder","yellow.birch","sweet.birch",
+                  "river.birch", "northern.catalpa","eastern.redbud","hawthorn",
+                  "common.persimmon", "kentucky.coffeetree","sweetgum",
+                  "osage.orange","cucumbertree","apple", "white.mulberry",
+                  "blackgum","eastern.hophornbeam","sourwood",
                   "paulownia..empress.tree.","eastern.cottonwood","bigtooth.aspen",
                   "quaking.aspen","black.locust","black.willow","sassafras",
                   "other.or.unknown.live.tree")]),
@@ -228,13 +232,13 @@ FIA.spec2 <-cbind(FIA.spec1[,c("id","County")],
 
 # sort data frame so rows increase by county id number
 FIA.spec2 <- FIA.spec2[order(FIA.spec2$id),]  			# sort rows by county number
-```
-```{r cleanFIA_out, eval=FALSE}
+
 write.csv(FIA.spec2, "R Output/OHCompCleanFIA_percent.csv",row.names=F)
 ```
 
 Figure: PLS vs FIA pie charts
 -------------------------------
+This creates MS figure 3
 ```{r pieChart, fig.width=8,fig.height=6}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
@@ -276,9 +280,13 @@ fia.pies <- fia3[,c('ID','X','Y',speciesList)]
 #----plot the pies!----
 
 # set colors manually, using the 9 colors in "Set1" of RColorBrewer and then adding my own
-col <- c("#377EB8", "#984EA3", "#4DAF4A", "#E41A1C", "cyan2", "green", "#F781BF", "#0C2C84", "#FFFF33", "#FF7F00", "#A65628", "olivedrab1", "#999999", "#E7298A", "white")
+col <- c("#377EB8", "#984EA3", "#4DAF4A", "#E41A1C", "cyan2", "green", "#F781BF",
+         "#0C2C84", "#FFFF33", "#FF7F00", "#A65628", "olivedrab1", "#999999",
+         "#E7298A", "white")
 # legend names (corresponds with color order)
-species <- c("ash", "basswood", "beech", "cherry", "elm", "hackberry", "hickory", "honey locust", "maple", "oak", "pine", "sycamore", "tulip", "walnut", "other")
+species <- c("ash", "basswood", "beech", "cherry", "elm", "hackberry", "hickory", 
+             "honey locust", "maple", "oak", "pine", "sycamore", "tulip poplar", 
+             "walnut", "other")
 
 # turn on to write file to disk
 #png("exportedFigs/PieCharts.png", type = "cairo", units = "in", width = 7, height = 4.5, res=2000)
@@ -343,15 +351,20 @@ county.proj <- spTransform(county, CRS("+init=epsg:32123"))
 # Join data with county shapefile by the county ID number 
 change3 <- merge(county.proj, change2, by.x= "ID", by.y= "id", all.x=TRUE)
 
-#png("exportedFigs/SpeciesChangeWorking_NewScheme_noBg.png", type = "cairo", units = "in", width = 7, height = 5, res = 2000)
+#png("exportedFigs/SpeciesChange_aw.png", type = "cairo", units = "in", width = 7, height = 5, res = 2000)
 
 # alternative color scheme
 #library(RColorBrewer) # used to get 'Spectral' color scheme, which I modifed below
 library(grid)
 labels <- names(change3[,14:28])
-labels[8] <- 'honey locust'
-colchange <- c("#a50026","#d73027","#f46d43","#fdae61","#fed569","#ffffbf","#abd9e9",
-               "#92c5de","#74add1","#4575b4","#313695")
+labels[c(8,13)] <- c('honey locust', 'tulip poplar')
+
+colchange <- c("#a50026","#d73027","#f46d43","#fdae61","#fed569","antiquewhite3",
+               "#abd9e9","#92c5de","#74add1","#4575b4","#313695")
+
+#colchange <- c("#a50026","#d73027","#f46d43","#fdae61","#fed569","darkgray",
+#               "#abd9e9","#92c5de","#74add1","#4575b4","#313695")
+
 spplot(change3[,14:28],col.regions=rev(colchange), col='gray29',
        names.attr=labels, at=seq(-55,55,(55+55)/11), as.table=T, 
        #colorkey=list(labels=list(cex=1.2)), 
