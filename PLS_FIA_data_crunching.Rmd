@@ -53,7 +53,7 @@ library(plyr)
 PLS Processing: Summarize Raw Data by County
 ---------------------------------------
 
-```{r PLStoCountyRaw}
+```{r PLStoCountyRaw, eval=FALSE}
 setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
 
 # load corner point shapefile (data collected from georeferenced maps). Current version OHcorners.shp output based: January 30, 2013. CRS = NAD83, latlong
@@ -63,6 +63,7 @@ corners <- readOGR("GISlayers","OHcorners", verbose=F)
 county <- readOGR("GISlayers","OHCounty", verbose=F) 
 
 # quick look at data
+par(mar=c(0,0,0,0))
 plot(county, main='PLS Data Points')
 plot(corners, col="blue", cex = 0.4,add=T)
 
@@ -84,14 +85,6 @@ comp<-t(sapply(as.numeric(levels(factor(corners$countyID))),function(j)  {
 	J<-corners[ !is.na(corners$countyID)& corners$countyID==j,]  
 	c(county=j,sapply(species, function(i)sum(c(J$SP1==i,J$SP2==i,J$SP3==i,J$SP4==i),na.rm=TRUE))) 
 }))
-
-# combine typo columns
-comp.df <- as.data.frame(comp)
-comp.df <- rename(comp.df, c('sugar maple' = "sugarmaple", `sugar mpale` = "sugarmpale"))
-comp.df$poplar <- comp.df$poplar + comp.df$Poplar
-comp.df$sugarmaple <- comp.df$sugarmaple + comp.df$sugarmpale
-comp.df <- rename(comp.df, c('sugarmaple' = "sugar maple"))
-comp.df <- subset(comp.df, select=-c(Poplar,sugarmpale))
 
 # sum the trees for each county (sum row excluding county column)
 comp.df$total <- rowSums(comp.df[,-1])
