@@ -1,5 +1,6 @@
 
 ```{r options, include=FALSE}
+library(knitr)
 opts_chunk$set(cache = TRUE)
 ```
 
@@ -358,13 +359,105 @@ par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
 plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
 # add legend (for example)
 legend("bottom", legend=c('southeast counties','northwest counties'), pch=19, bty='n', col=c('gray60','gray10'))
+```
 
-## no arrow vectors
-# extract the [x,y] coordinates from the PLS.nmds.vf object
-#plot(PLS.nmds.vf[,1],PLS.nmds.vf[,2],pch=rownames(PLS.nmds.vf),add=T)
+Arrows make things look messy; make an arrow-less plot. The '*nmds.vf' object has it's own specific plot call (via ecodist), and you can see the function by typing 'plot.vf' into the console. Here, I modify this function to remove the arrows.
 
-# ggplot
-#library(ggplot2)
+Essentially, the plot.vf method adjusts the coordinates for each thing in the nmds by the r value for that thing.
+
+.
+```{r myPlotFunctions}
+plot.vf.noArrow <- function(x, pval = 1, cex = 0.8, ascale = 0.9, ...) {
+        plotlim <- par()$usr
+        plotlim <- min((plotlim[2] - plotlim[1]), (plotlim[4] - plotlim[3]))
+        ascale <- ascale * (plotlim/2)
+        x <- x[x[, 4] < pval, , drop = FALSE]
+        #for (i in 1:dim(x)[[1]]) {
+          #arrows(0, 0, x[i, 1] * x[i, 3] * ascale, x[i, 2] * x[i,3] * ascale, ...)
+        #}
+        text(x[, 1] * x[, 3] * (ascale * 1.1), x[, 2] * x[, 3] * (ascale * 1.1), 
+             dimnames(x)[[1]], cex = cex, ...)
+      }
+
+plot.vf.noText <- function(x, pval = 1, cex = 0.8, ascale = 0.9, ...) {
+        plotlim <- par()$usr
+        plotlim <- min((plotlim[2] - plotlim[1]), (plotlim[4] - plotlim[3]))
+        ascale <- ascale * (plotlim/2)
+        x <- x[x[, 4] < pval, , drop = FALSE]
+        for (i in 1:dim(x)[[1]]) {
+          arrows(0, 0, x[i, 1] * x[i, 3] * ascale, x[i, 2] * x[i,3] * ascale, ...)
+        }
+        #text(x[, 1] * x[, 3] * (ascale * 1.1), x[, 2] * x[, 3] * (ascale * 1.1), 
+        #     dimnames(x)[[1]], cex = cex, ...)
+      }
+```
+
+
+```{r nmdsPlot, fig.width=9, fig.height=5}
+setwd('C:/Users/deinesji/Dropbox/Dan_Williams/CleanCodeAndData')
+load('R Output/NMDS.RData')
+
+# assign county groups (1 = nw, 2 = se)
+pls$region <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,2,1,2,2,2,2,2,2,2,2)
+pls$color <- apply(as.array(pls$region),1,function (x) {
+  if (x == 1) out <- 'gray10'
+  else out <- 'gray60'
+  return(out) })
+pls$pch <- apply(as.array(pls$region),1,function (x) {
+  if (x == 1) out <- 3
+  else out <- 25
+  return(out) })
+
+names(PLS.nmds.min) <- c('Axis 1', 'Axis 2')
+names(FIA.nmds.min) <- c('Axis 1', 'Axis 2')
+
+# adjust coordinates for legibility
+PLS.nmds.vf.mod <- PLS.nmds.vf
+FIA.nmds.vf.mod <- FIA.nmds.vf
+
+PLS.nmds.vf.mod['elm',1:2] <- c(-.45,1.04)
+PLS.nmds.vf.mod['maple',2] <- 0.26
+
+FIA.nmds.vf.mod['ash',2] <- FIA.nmds.vf['ash',2] * 0.85
+FIA.nmds.vf.mod['walnut',1] <- FIA.nmds.vf['walnut',1] * 1.1
+FIA.nmds.vf.mod['maple',2] <- FIA.nmds.vf['maple',2] * 0.9
+FIA.nmds.vf.mod['other',2] <- FIA.nmds.vf['other',2] * 1.1
+FIA.nmds.vf.mod['beech',2] <- FIA.nmds.vf['beech',2] * 0.6
+FIA.nmds.vf.mod['elm',1:2] <- c(.99,0.23)
+
+#png("exportedFigs/ordination_bw_adjustedlabels.png", type = "cairo", units = "in", width = 7, height = 4, res = 2000)
+
+# Plot NMDS min stress result - base plot
+par(mfrow=c(1,2), oma=c(0, 0, 0, 0))
+
+yrange <- c(-.45,0.58)
+xrange <- c(-.45, 0.4)
+
+#PLS
+par(mar=c(6,4,2,1))
+plot(PLS.nmds.min, main='Settlement-Era', col=pls$color, pch=19, xlim=xrange, 
+     cex=.8,ylim=yrange)
+# adjust arrows by using ?arrows function arguments in plot call:
+plot.vf.noText(PLS.nmds.vf, length=0.08, lty=1, col='gray68')
+plot.vf.noArrow(PLS.nmds.vf.mod)
+legend('topleft', legend=expression(paste( r^2, ' = 0.94',sep='')), bty='n')  
+
+#FIA
+par(mar=c(6,4,2,1))
+plot(FIA.nmds.min, main='Modern', col=pls$color, pch=19, xlim=xrange, 
+     cex=.8,ylim=yrange)
+plot.vf.noText(FIA.nmds.vf, length=0.08, lty=1, col='gray68')
+plot.vf.noArrow(FIA.nmds.vf.mod)
+yeah <- round(max(FIAnmds$r2),2)
+legend('topleft', legend=expression(paste( r^2, ' = 0.83',sep='')), bty='n') 
+
+# empty plot over full device
+par(fig=c(0, 1, 0, 1), oma=c(0, 3, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
+plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
+# add legend (for example)
+legend("bottom", legend=c('southeast counties','northwest counties'), pch=19, bty='n', col=c('gray60','gray10'))
+
+# dev.off()
 ```
 
 Stats for Manuscript
